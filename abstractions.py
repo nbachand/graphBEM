@@ -2,6 +2,7 @@ import numpy as np
 import scipy.linalg as sp_linalg
 from matplotlib import pyplot as plt
 from scipy.integrate import trapz
+import networkx as nx
 
 class BuildingSimulation():
     def __init__(self, **kwargs):
@@ -25,7 +26,6 @@ class BuildingSimulation():
         self.vent = VentilationSimulation(**vent_kwargs)
         self.room.initialize(self.delt)
         self.wall.initialize(self.delt)
-
 
     def run(self):
         Tints = np.zeros(self.N) # initializing interior air temp vector
@@ -208,8 +208,8 @@ class VentilationSimulation:
         return 0
     
     def timeStepHWP4(self, t, Tint = 0, Tout = 0):
-        self.Vnv = np.sum(self.get_Vnv(Tint, Tout, t), axis=0)
-        Evt = self.rho * self.Cp * self.Vnv * (Tout - Tint)
+        self.Vnv = np.sum(self.get_Vnv(Tint, Tout, t), axis=0) #summing across windows
+        Evt = self.qToEvt(self.Vnv, Tout, Tint)
         return Evt
     
     def timeStep(self, *args, **kwargs):
@@ -217,3 +217,57 @@ class VentilationSimulation:
             return self.timeStepHWP1(*args)
         if self.ventType == "HWP4":
             return self.timeStepHWP4(*args, **kwargs)
+        
+    def qToEvt(self, q, Tout, Tint):
+        return self.rho * self.Cp * q * (Tout - Tint)
+    
+
+class buildingGraph:
+    def __init__(self, connectivityMatrix:np.array, roomList:list):
+        self.connectivityMatrix = connectivityMatrix
+        self.roomList = roomList
+        self.n = connectivityMatrix.shape[0]
+        self.m = connectivityMatrix.shape[1]
+        self.G = nx.Graph()
+        self.G.add_nodes_from(roomList)
+        for i in range(self.n):
+            for j in range(self.m):
+                if connectivityMatrix[i, j] != 0:
+                    self.G.add_edge(roomList[i][0], roomList[j][0], weight = connectivityMatrix[i, j])
+
+    def draw(self):
+        plt.figure()
+        # nx.draw(self.G, with_labels=True)
+
+        elarge = [(u, v) for (u, v, d) in self.G.edges(data=True) if d["weight"] > 0.5]
+        esmall = [(u, v) for (u, v, d) in self.G.edges(data=True) if d["weight"] <= 0.5]
+
+        pos = nx.spring_layout(self.G, seed=7)  # positions for all nodes - seed for reproducibility
+
+        # nodes
+        nx.draw_networkx_nodes(self.G, pos, node_size=700)
+
+        # edges
+        nx.draw_networkx_edges(self.G, pos, edgelist=elarge, width=6)
+        nx.draw_networkx_edges(
+            self.G, pos, edgelist=esmall, width=6, alpha=0.5, edge_color="b", style="dashed"
+        )
+
+        # node labels
+        nx.draw_networkx_labels(self.G, pos, font_size=20, font_family="sans-serif")
+        # edge weight labels
+        edge_labels = nx.get_edge_attributes(self.G, "weight")
+        nx.draw_networkx_edge_labels(self.G, pos, edge_labels)
+
+        ax = plt.gca()
+        ax.margins(0.08)
+        plt.axis("off")
+        plt.tight_layout()
+
+    def updateAllEdges(self, properties: dict):
+        for i, j, d in self.G.edges(data=True):
+            d.update(properties)
+
+    def updateAllNodes(self, properties: dict):
+        for n, d in self.G.nodes(data=True):
+            d.update(properties)
