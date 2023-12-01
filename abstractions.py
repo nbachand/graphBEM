@@ -20,21 +20,65 @@ class BuildingSimulation():
         elif self.Tout is None:
             self.Tout =  np.zeros_like(self.times)
 
-    def initialize(self, room_kwargs, wall_kwargs, vent_kwargs):
-        self.room = RoomSimulation(**room_kwargs)
-        self.wall = WallSimulation(**wall_kwargs)
-        self.vent = VentilationSimulation(**vent_kwargs)
-        self.room.initialize(self.delt)
-        self.wall.initialize(self.delt)
+    def initialize(self, bG):
+        self.bG = bG
+        for n, d in self.bG.G.nodes(data=True):
+            r = RoomSimulation(**d["room_kwargs"])
+            v = VentilationSimulation(**d["vent_kwargs"])
+            r.initialize(self.delt)
+
+            Tints = np.zeros(self.N) # initializing interior air temp vector
+            Tints[0] = r.Tint
+    
+            d.update({"room": r, 
+                      "vent": v,
+                      "Tints": Tints,
+                      "Vnvs": np.zeros(self.N), # initializing ventilation energy vector
+                      "Ef": 0,
+                      })
+        for i, j, d in self.bG.G.edges(data=True):
+            w = WallSimulation(**d["wall_kwargs"])
+            w.initialize(self.delt)
+
+            T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
+            T_profs[:, 0] = w.getWallProfile(self.bG.G.nodes[i]["room"].Tint, self.bG.G.nodes[j]["room"].Tint)
+
+            d.update({
+                "wall": w,
+                "T_profs": T_profs,
+                })
 
     def run(self):
+        for c in range(1, self.N):
+            self.t = self.times[c]
+            self.hour = self.t / 60 / 60
+
+            # Simulation logic
+            for i, j, d in self.bG.G.edges(data=True):
+                Ef = d["wall"].timeStep(self.bG.G.nodes[i]["room"].Tint, self.bG.G.nodes[j]["room"].Tint)
+                self.bG.G.nodes[i]["Ef"] += Ef.front * d["weight"]
+                self.bG.G.nodes[j]["Ef"] += Ef.back * d["weight"]
+                d["T_profs"][:,c] = d["wall"].T_prof
+
+            for n, d in self.bG.G.nodes(data=True):
+                Evt = d["vent"].timeStep(self.t, Tint = d["room"].Tint, Tout = self.Tout[c])
+                d["Vnvs"][c] = d["vent"].Vnv
+                d["room"].timeStep(d["Ef"], Evt)
+                d["Tints"][c] = d["room"].Tint
+                d["Ef"] = 0 #resetting Ef for next time step
+
+
+    def runOld(self):
+        self.wall = self.bG.G.edges['R', 'R']["wall"]
+        self.room = self.bG.G.nodes['R']["room"]
+        self.vent = self.bG.G.nodes['R']["vent"]
         Tints = np.zeros(self.N) # initializing interior air temp vector
         Vnvs = np.zeros(self.N) # initializing ventilation energy vector
         Tint = self.room.Tint
         Tints[0] = Tint
 
-        T_profs = np.zeros((self.wall.n + 2, self.N)) # intializing matrix to store 6 temperature profiles
-        T_profs[:, 0] = self.wall.getWallProfile(Tint)
+        T_profs = np.zeros((self.wall.n + 2, self.N)) # intializing matrix to store temperature profiles
+        T_profs[:, 0] = self.wall.getWallProfile(Tint, Tint)
         nWalls = 3 #number of walls
 
         for i in range(1, self.N):
@@ -42,7 +86,7 @@ class BuildingSimulation():
             self.hour = self.t / 60 / 60
 
             # Simulation logic
-            Ef = self.wall.timeStep(self.room.Tint)
+            Ef = self.wall.timeStep(self.room.Tint, self.room.Tint)
             Evt = self.vent.timeStep(self.t, Tint = self.room.Tint, Tout = self.Tout[i])
             self.room.timeStep(nWalls * (Ef.front + Ef.back), Evt)
 
@@ -120,22 +164,22 @@ class WallSimulation:
         self.b = np.zeros(self.n)
         self.T = np.ones(self.n) * self.Tf0 #initializing constant wall temp equal to initial fabric temp
 
-    def timeStep(self, Tint):
-        self.b[0] = self.lambda_val * Tint / (1 + self.lambda_bound)
-        self.b[-1] = self.b[0]
+    def timeStep(self, TintF, TintB):
+        self.b[0] = self.lambda_val * TintF / (1 + self.lambda_bound)
+        self.b[-1] = self.lambda_val * TintB / (1 + self.lambda_bound)
         self.T = np.dot(self.A, self.T) + self.b
-        self.T_prof = self.getWallProfile(Tint)
+        self.T_prof = self.getWallProfile(TintF, TintB)
 
         Ef = WallFlux()
         Ef.front = self.Af * (self.T_prof[1] - self.T_prof[0]) / self.delx
         Ef.back = self.Af * (self.T_prof[-2] - self.T_prof[-1]) / self.delx
         return Ef
 
-    def getWallProfile(self, Tint):
+    def getWallProfile(self, TintF, TintB):
         T_prof = np.zeros(self.n + 2)
         T_prof[1:-1] = self.T
-        T_prof[0] = self.get_Tf(self.T[0], Tint, self.lambda_bound)
-        T_prof[-1] = self.get_Tf(self.T[-1], Tint, self.lambda_bound)
+        T_prof[0] = self.get_Tf(self.T[0], TintF, self.lambda_bound)
+        T_prof[-1] = self.get_Tf(self.T[-1], TintB, self.lambda_bound)
         return T_prof
 
     def get_Tf(self, T1, Tint, lambda_bound):
@@ -222,7 +266,7 @@ class VentilationSimulation:
         return self.rho * self.Cp * q * (Tout - Tint)
     
 
-class buildingGraph:
+class BuildingGraph:
     def __init__(self, connectivityMatrix:np.array, roomList:list):
         self.connectivityMatrix = connectivityMatrix
         self.roomList = roomList
