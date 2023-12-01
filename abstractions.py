@@ -3,6 +3,7 @@ import scipy.linalg as sp_linalg
 from matplotlib import pyplot as plt
 from scipy.integrate import trapz
 import networkx as nx
+from copy import deepcopy
 
 class BuildingSimulation():
     def __init__(self, **kwargs):
@@ -61,9 +62,12 @@ class BuildingSimulation():
                 d["T_profs"][:,c] = d["wall"].T_prof
 
             for n, d in self.bG.G.nodes(data=True):
-                Evt = d["vent"].timeStep(self.t, Tint = d["room"].Tint, Tout = self.Tout[c])
-                d["Vnvs"][c] = d["vent"].Vnv
-                d["room"].timeStep(d["Ef"], Evt)
+                if n == "OD":
+                    d["room"].Tint = self.Tout[c] # if outdoors, just use outdoor temp
+                else:
+                    Evt = d["vent"].timeStep(self.t, Tint = d["room"].Tint, Tout = self.Tout[c])
+                    d["Vnvs"][c] = d["vent"].Vnv
+                    d["room"].timeStep(d["Ef"], Evt)
                 d["Tints"][c] = d["room"].Tint
                 d["Ef"] = 0 #resetting Ef for next time step
 
@@ -310,8 +314,8 @@ class BuildingGraph:
 
     def updateAllEdges(self, properties: dict):
         for i, j, d in self.G.edges(data=True):
-            d.update(properties)
+            d.update(deepcopy(properties))
 
     def updateAllNodes(self, properties: dict):
         for n, d in self.G.nodes(data=True):
-            d.update(properties)
+            d.update(deepcopy(properties))
