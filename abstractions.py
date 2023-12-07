@@ -8,7 +8,7 @@ from copy import deepcopy
 class BuildingSimulation():
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["delt", "simLength", "Tout"])
+        expected_kwards = set(["delt", "simLength", "Tout", "Tfloor"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         self.t = 0 #time (seconds)
@@ -16,7 +16,7 @@ class BuildingSimulation():
         self.times = np.arange(0, self.simLength + self.delt, self.delt)
         self.hours = self.times / 60 / 60
         self.N = len(self.times)
-        if type(self.Tout) == float:
+        if isinstance(self.Tout, float):
             self.Tout = np.ones_like(self.times) * self.Tout
         elif self.Tout is None:
             self.Tout =  np.zeros_like(self.times)
@@ -27,6 +27,10 @@ class BuildingSimulation():
             r = RoomSimulation(**d["room_kwargs"])
             v = VentilationSimulation(**d["vent_kwargs"])
             r.initialize(self.delt)
+            if n == "OD":
+                r.Tint = self.Tout[0]
+            elif n == "FL":
+                r.Tint = self.Tfloor
 
             Tints = np.zeros(self.N) # initializing interior air temp vector
             Tints[0] = r.Tint
@@ -39,10 +43,12 @@ class BuildingSimulation():
                       })
         for i, j, d in self.bG.G.edges(data=True):
             w = WallSimulation(**d["wall_kwargs"])
-            w.initialize(self.delt)
+            Tff = self.bG.G.nodes[i]["room"].Tint
+            Tfb = self.bG.G.nodes[j]["room"].Tint
+            w.initialize(self.delt, Tff, Tfb)
 
             T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
-            T_profs[:, 0] = w.getWallProfile(self.bG.G.nodes[i]["room"].Tint, self.bG.G.nodes[j]["room"].Tint)
+            T_profs[:, 0] = w.getWallProfile(Tff, Tfb)
 
             d.update({
                 "wall": w,
@@ -64,6 +70,8 @@ class BuildingSimulation():
             for n, d in self.bG.G.nodes(data=True):
                 if n == "OD":
                     d["room"].Tint = self.Tout[c] # if outdoors, just use outdoor temp
+                elif n == "FL":
+                    d["room"].Tint = self.Tfloor # if floor, just use floor temp
                 else:
                     Evt = d["vent"].timeStep(self.t, Tint = d["room"].Tint, Tout = self.Tout[c])
                     d["Vnvs"][c] = d["vent"].Vnv
@@ -108,14 +116,12 @@ class WallFlux:
 class RoomSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["T0"])
+        expected_kwards = set(["T0", "V", "Eint"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         # Constants
         self.rho = 1.225 #air density
         self.Cp = 1005  #specific heat capacity for air
-        self.V = 2880 #volume of air
-        self.Eint = 250 #internal heat generation
 
     def initialize(self, delt):
         self.Tint = self.T0
@@ -132,7 +138,7 @@ class RoomSimulation:
 class WallSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["Tf0"])
+        expected_kwards = set([])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         # Constants
@@ -145,7 +151,7 @@ class WallSimulation:
         self.delx = 0.010 #spatial discretization size
         self.x = np.arange(0, self.th + self.delx, self.delx)
 
-    def initialize(self, delt):
+    def initialize(self, delt, Tff, Tfb):
         # Scaling factors
         self.lambda_val = (self.kf * delt) / (self.rhof * self.Cf * self.delx**2)
         self.lambda_bound = self.kf / (self.h * self.delx)
@@ -166,7 +172,7 @@ class WallSimulation:
         self.A = A_matrix
 
         self.b = np.zeros(self.n)
-        self.T = np.ones(self.n) * self.Tf0 #initializing constant wall temp equal to initial fabric temp
+        self.T = np.linspace(Tff, Tfb, self.n) #create a uniform temperature profile between Tff and Tfb of length n
 
     def timeStep(self, TintF, TintB):
         self.b[0] = self.lambda_val * TintF / (1 + self.lambda_bound)
@@ -235,9 +241,9 @@ class VentilationSimulation:
         Vnv = np.zeros((self.Cds.size, t.size))
         hours = t / 60 / 60
         day_hours = np.remainder(hours, 24)
-        if type(Tint) == float:
+        if isinstance(Tint, float):
             Tint = np.ones_like(hours) * Tint
-        if type(Tout) == float:
+        if isinstance(Tout, float):
             Tout = np.ones_like(hours) * Tout
         Tint = Tint[(day_hours < 7) | (day_hours > 12 + 7)]
         Tout = Tout[(day_hours < 7) | (day_hours > 12 + 7)]
@@ -247,6 +253,9 @@ class VentilationSimulation:
             Vnv_i[(day_hours < 7) | (day_hours > 12 + 7)] = Vnv_7to7
             Vnv[i, :] = Vnv_i
         return Vnv
+        
+    def qToEvt(self, q, Tout, Tint):
+        return self.rho * self.Cp * q * (Tout - Tint)
 
     def timeStepHWP1(self, t):
         hour = t / 60 / 60
@@ -265,9 +274,8 @@ class VentilationSimulation:
             return self.timeStepHWP1(*args)
         if self.ventType == "HWP4":
             return self.timeStepHWP4(*args, **kwargs)
-        
-    def qToEvt(self, q, Tout, Tint):
-        return self.rho * self.Cp * q * (Tout - Tint)
+        if self.ventType == "None":
+            return 0
     
 
 class BuildingGraph:
