@@ -5,10 +5,32 @@ from scipy.integrate import trapz
 import networkx as nx
 from copy import deepcopy
 
+def getEquivalentTimeSeries(x, tSeries):
+    if isinstance(x, float):
+        x = np.ones_like(tSeries) * x
+    elif x is None:
+        x =  np.zeros_like(tSeries)
+    elif len(x) != len(tSeries):
+        raise Exception("x and tSeries must be the same length")
+    return x
+
+# def getVFAlignedRectangles(X, Y, L):
+#     Xbar = X / L
+#     Ybar = Y / L
+
+#     return 2 / (np.pi * Xbar * Ybar) * (
+#         np.log(np.sqrt((1 + Xbar**2) * (1 + Ybar**2) / (1 + Xbar**2 + Ybar**2))) +
+#         Xbar * np.sqrt(1 + Ybar**2)  * np.arctan(Xbar / np.sqrt(1 + Ybar**2)) + 
+#         Ybar * np.sqrt(1 + Xbar**2)  * np.arctan(Ybar / np.sqrt(1 + Xbar**2)) -
+#         Xbar * np.arctan(Xbar) - 
+#         Ybar * np.arctan(Ybar)
+#         )
+
+
 class BuildingSimulation():
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["delt", "simLength", "Tout", "Tfloor"])
+        expected_kwards = set(["delt", "simLength", "Tout", "radG", "Tfloor"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         self.t = 0 #time (seconds)
@@ -16,10 +38,8 @@ class BuildingSimulation():
         self.times = np.arange(0, self.simLength + self.delt, self.delt)
         self.hours = self.times / 60 / 60
         self.N = len(self.times)
-        if isinstance(self.Tout, float):
-            self.Tout = np.ones_like(self.times) * self.Tout
-        elif self.Tout is None:
-            self.Tout =  np.zeros_like(self.times)
+        self.Tout = getEquivalentTimeSeries(self.Tout, self.times)
+        self.radGF = getEquivalentTimeSeries(self.radG, self.times)
 
     def initialize(self, bG):
         self.bG = bG
@@ -43,8 +63,8 @@ class BuildingSimulation():
                       })
         for i, j, d in self.bG.G.edges(data=True):
             w = WallSimulation(**d["wall_kwargs"])
-            Tff = self.bG.G.nodes[i]["room"].Tint
-            Tfb = self.bG.G.nodes[j]["room"].Tint
+            Tff = self.bG.G.nodes[d["front"]]["room"].Tint
+            Tfb = self.bG.G.nodes[d["back"]]["room"].Tint
             w.initialize(self.delt, Tff, Tfb)
 
             T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
@@ -61,12 +81,14 @@ class BuildingSimulation():
             self.hour = self.t / 60 / 60
 
             # Simulation logic
+            # Solve Walls
             for i, j, d in self.bG.G.edges(data=True):
-                Ef = d["wall"].timeStep(self.bG.G.nodes[i]["room"].Tint, self.bG.G.nodes[j]["room"].Tint)
-                self.bG.G.nodes[i]["Ef"] += Ef.front * d["weight"]
-                self.bG.G.nodes[j]["Ef"] += Ef.back * d["weight"]
+                Ef = d["wall"].timeStep(self.bG.G.nodes[d["front"]]["room"].Tint, self.bG.G.nodes[d["back"]]["room"].Tint)
+                self.bG.G.nodes[d["front"]]["Ef"] += Ef.front * d["weight"]
+                self.bG.G.nodes[d["back"]]["Ef"] += Ef.back * d["weight"]
                 d["T_profs"][:,c] = d["wall"].T_prof
 
+            # Solve Rooms
             for n, d in self.bG.G.nodes(data=True):
                 if n == "OD":
                     d["room"].Tint = self.Tout[c] # if outdoors, just use outdoor temp
@@ -150,8 +172,9 @@ class WallSimulation:
         self.h = 4 #fabric convection coefficient
         self.delx = 0.010 #spatial discretization size
         self.x = np.arange(0, self.th + self.delx, self.delx)
+        self.alpha = 0.7 #fabric absorptivity
 
-    def initialize(self, delt, Tff, Tfb):
+    def initialize(self, delt, TfF, TfB):
         # Scaling factors
         self.lambda_val = (self.kf * delt) / (self.rhof * self.Cf * self.delx**2)
         self.lambda_bound = self.kf / (self.h * self.delx)
@@ -172,11 +195,14 @@ class WallSimulation:
         self.A = A_matrix
 
         self.b = np.zeros(self.n)
-        self.T = np.linspace(Tff, Tfb, self.n) #create a uniform temperature profile between Tff and Tfb of length n
+        self.T = np.linspace(TfF, TfB, self.n) #create a uniform temperature profile between Tff and Tfb of length n
+
+        self.GF = 0 #front radiative gain
+        self.GB = 0 #back radiative gain
 
     def timeStep(self, TintF, TintB):
-        self.b[0] = self.lambda_val * TintF / (1 + self.lambda_bound)
-        self.b[-1] = self.lambda_val * TintB / (1 + self.lambda_bound)
+        self.b[0] = self.lambda_val * (TintF + self.GF * self.alpha/self.h) / (1 + self.lambda_bound)
+        self.b[-1] = self.lambda_val * (TintB + self.GB * self.alpha/self.h) / (1 + self.lambda_bound)
         self.T = np.dot(self.A, self.T) + self.b
         self.T_prof = self.getWallProfile(TintF, TintB)
 
@@ -286,10 +312,16 @@ class BuildingGraph:
         self.m = connectivityMatrix.shape[1]
         self.G = nx.Graph()
         self.G.add_nodes_from(roomList)
-        for i in range(self.n):
-            for j in range(self.m):
+        for i in range(self.n): # solved nodes
+            for j in range(self.m): # forcing nodes
                 if connectivityMatrix[i, j] != 0:
-                    self.G.add_edge(roomList[i][0], roomList[j][0], weight = connectivityMatrix[i, j])
+                    self.G.add_edge(
+                        roomList[i][0], 
+                        roomList[j][0], 
+                        weight = connectivityMatrix[i, j],
+                        front = roomList[i][0],
+                        back = roomList[j][0]
+                        )
 
     def draw(self):
         plt.figure()
@@ -327,3 +359,43 @@ class BuildingGraph:
     def updateAllNodes(self, properties: dict):
         for n, d in self.G.nodes(data=True):
             d.update(deepcopy(properties))
+
+# class Radiation:
+#     def __init__(self, **kwargs):
+#         self.__dict__.update(kwargs)
+#         expected_kwards = set(["solveRooms"])
+#         if set(kwargs.keys()) != expected_kwards:
+#             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
+        
+#         # Constants
+#         self.sigma = 5.67e-8
+
+#     def initialize(self, roomName):
+#         self.name = roomName
+#         X = 4
+#         Y = 4
+#         A = X * Y
+#         if self.name == "RF":
+#             wallList = [
+#                 ("sun", {}), 
+#                 ("RF", {})
+#                 ]
+#             F = 1
+#         elif self.name in self.solveRooms:
+#             wallList = [
+#                 ("RF", {}),
+#                 ("FL", {})
+#                 ]
+#             L = 3
+#             F = getVFAlignedRectangles(X, Y, L)
+#         W = (A * F) ** -1
+#         connectivityMatrix = np.array([
+#         [0, W],
+#         [W, 0],
+#         ])
+#         self.bG = BuildingGraph(connectivityMatrix, wallList)
+#         self.bG.updateAllEdges({"radiance": 0})
+
+    # def timeStep(self, roomNode:nx.classes.coreviews.AtlasView):
+    #     for wall in self.bG.G.nodes:
+    #         T = roomNode[wall]]["wall"].
