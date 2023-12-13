@@ -370,23 +370,20 @@ class Radiation:
             wallList = [
                 ("sun", {"area": A}), 
                 ("SS", {"area": A}),
-                # ("DR", {"area": A}),
-                # ("CV", {"area": A}),
-                # ("CR", {"area": A}),
+                ("DR", {"area": A}),
+                ("CV", {"area": A}),
+                ("CR", {"area": A}),
                 ]
             F = 1
             W = (A * F) ** -1
-            # connectivityMatrix = np.array([
-            # [0, W, W, W, W],
-            # [W, 0, 0, 0, 0],
-            # [W, 0, 0, 0, 0],
-            # [W, 0, 0, 0, 0],
-            # [W, 0, 0, 0, 0],
-            # ])
             connectivityMatrix = np.array([
-            [0, W],
-            [W, 0],
+            [0, W, W, W, W],
+            [W, 0, 0, 0, 0],
+            [W, 0, 0, 0, 0],
+            [W, 0, 0, 0, 0],
+            [W, 0, 0, 0, 0],
             ])
+
         elif self.name == "DR":
             wallList = [
                 ("OD", {"area": A}), 
