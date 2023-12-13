@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from scipy.integrate import trapz
 import networkx as nx
 from copy import deepcopy
+import pandas as pd
 
 def getEquivalentTimeSeries(x, tSeries):
     if isinstance(x, float):
@@ -14,17 +15,32 @@ def getEquivalentTimeSeries(x, tSeries):
         raise Exception("x and tSeries must be the same length")
     return x
 
-# def getVFAlignedRectangles(X, Y, L):
-#     Xbar = X / L
-#     Ybar = Y / L
+def getVFAlignedRectangles(X, Y, L):
+    Xbar = X / L
+    Ybar = Y / L
 
-#     return 2 / (np.pi * Xbar * Ybar) * (
-#         np.log(np.sqrt((1 + Xbar**2) * (1 + Ybar**2) / (1 + Xbar**2 + Ybar**2))) +
-#         Xbar * np.sqrt(1 + Ybar**2)  * np.arctan(Xbar / np.sqrt(1 + Ybar**2)) + 
-#         Ybar * np.sqrt(1 + Xbar**2)  * np.arctan(Ybar / np.sqrt(1 + Xbar**2)) -
-#         Xbar * np.arctan(Xbar) - 
-#         Ybar * np.arctan(Ybar)
-#         )
+    return 2 / (np.pi * Xbar * Ybar) * (
+        np.log(np.sqrt((1 + Xbar**2) * (1 + Ybar**2) / (1 + Xbar**2 + Ybar**2))) +
+        Xbar * np.sqrt(1 + Ybar**2)  * np.arctan(Xbar / np.sqrt(1 + Ybar**2)) + 
+        Ybar * np.sqrt(1 + Xbar**2)  * np.arctan(Ybar / np.sqrt(1 + Xbar**2)) -
+        Xbar * np.arctan(Xbar) - 
+        Ybar * np.arctan(Ybar)
+        )
+
+# Function to build the system of equations
+def graphToSysEqnKCL(graph):
+    A = pd.DataFrame(0.0, graph.nodes, columns=graph.nodes)
+
+    # Build equations based on KCL for each node (except the reference node)
+    for n, d in graph.nodes(data=True):
+        # Sum of currents entering the node equals the sum of currents leaving the node (KCL)
+        A[n][n] += 1
+        for e in graph[n]:
+            A[e][n] = -d["boundaryResistance"] / graph[n][e]['weight']
+            A[n][n] += d["boundaryResistance"] / graph[n][e]['weight']
+
+    return A
+
 
 
 class BuildingSimulation():
@@ -195,7 +211,8 @@ class WallSimulation:
         self.A = A_matrix
 
         self.b = np.zeros(self.n)
-        self.T = np.linspace(TfF, TfB, self.n) #create a uniform temperature profile between Tff and Tfb of length n
+        self.T_prof = np.linspace(TfF, TfB, self.n + 2) #create a uniform temperature profile between Tff and Tfb of length n
+        self.T = self.T_prof[1:-1] #remove the boundary temperatures from the temperature profile
 
         self.GF = 0 #front radiative gain
         self.GB = 0 #back radiative gain
@@ -313,7 +330,7 @@ class BuildingGraph:
         self.G = nx.Graph()
         self.G.add_nodes_from(roomList)
         for i in range(self.n): # solved nodes
-            for j in range(self.m): # forcing nodes
+            for j in range(i, self.m): # forcing nodes
                 if connectivityMatrix[i, j] != 0:
                     self.G.add_edge(
                         roomList[i][0], 
@@ -360,42 +377,102 @@ class BuildingGraph:
         for n, d in self.G.nodes(data=True):
             d.update(deepcopy(properties))
 
-# class Radiation:
-#     def __init__(self, **kwargs):
-#         self.__dict__.update(kwargs)
-#         expected_kwards = set(["solveRooms"])
-#         if set(kwargs.keys()) != expected_kwards:
-#             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
+class Radiation:
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+        expected_kwards = set(["solveRooms"])
+        if set(kwargs.keys()) != expected_kwards:
+            raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         
-#         # Constants
-#         self.sigma = 5.67e-8
+        # Constants
+        self.sigma = 5.67e-8
 
-#     def initialize(self, roomName):
-#         self.name = roomName
-#         X = 4
-#         Y = 4
-#         A = X * Y
-#         if self.name == "RF":
-#             wallList = [
-#                 ("sun", {}), 
-#                 ("RF", {})
-#                 ]
-#             F = 1
-#         elif self.name in self.solveRooms:
-#             wallList = [
-#                 ("RF", {}),
-#                 ("FL", {})
-#                 ]
-#             L = 3
-#             F = getVFAlignedRectangles(X, Y, L)
-#         W = (A * F) ** -1
-#         connectivityMatrix = np.array([
-#         [0, W],
-#         [W, 0],
-#         ])
-#         self.bG = BuildingGraph(connectivityMatrix, wallList)
-#         self.bG.updateAllEdges({"radiance": 0})
+    def initialize(self, roomName, buildingGraph:nx.classes.graph.Graph, delt):
+        self.delt = delt
+        self.name = roomName
+        self.roomNode = buildingGraph[self.name]
+        X = 4
+        Y = 4
+        A = X * Y
+        if self.name == "RF":
+            wallList = [
+                ("sun", {"area": A}), 
+                ("SS", {"area": A}),
+                # ("DR", {"area": A}),
+                # ("CV", {"area": A}),
+                # ("CR", {"area": A}),
+                ]
+            F = 1
+            W = (A * F) ** -1
+            # connectivityMatrix = np.array([
+            # [0, W, W, W, W],
+            # [W, 0, 0, 0, 0],
+            # [W, 0, 0, 0, 0],
+            # [W, 0, 0, 0, 0],
+            # [W, 0, 0, 0, 0],
+            # ])
+            connectivityMatrix = np.array([
+            [0, W],
+            [W, 0],
+            ])
+        elif self.name == "DR":
+            wallList = [
+                ("OD", {"area": A}), 
+                ("CR", {"area": A}),
+                ("CV", {"area": A})
+                ]
+            F = 1/2
+            W = (A * F) ** -1
+            connectivityMatrix = np.array([
+            [0, W, W],
+            [W, 0, W],
+            [W, W, 0],
+            ])
+        elif self.name in self.solveRooms:
+            wallList = [
+                ("OD", {"area": A}),
+                ("FL", {"area": A})
+                ]
+            L = 3
+            F = getVFAlignedRectangles(X, Y, L)
+            W = (A * F) ** -1
+            connectivityMatrix = np.array([
+            [0, W],
+            [W, 0],
+            ])
+        self.bG = BuildingGraph(connectivityMatrix, wallList)
+        self.bG.updateAllEdges({"radiance": 0})
 
-    # def timeStep(self, roomNode:nx.classes.coreviews.AtlasView):
-    #     for wall in self.bG.G.nodes:
-    #         T = roomNode[wall]]["wall"].
+        # assign properties to raidation graph
+        for n, d in self.bG.G.nodes(data=True):
+            if n == "sun":
+                epislon = 1
+            else:
+                if n == self.roomNode[n]["front"]:
+                    d["T_index"] = -1 # reversed because front is in other room
+                elif n == self.roomNode[n]["back"]:
+                    d["T_index"] = 0 #reversed because back is in other room
+                else:
+                    raise Exception("Wall front/back has been missassigned")
+                
+                wall = self.roomNode[n]["wall"]
+                epislon = wall.alpha # opaque, diffuse, gray surface
+            d["boundaryResistance"] = (1 - epislon) / (epislon * d["area"])
+        self.A = graphToSysEqnKCL(self.bG.G)
+
+    def timeStep(self, solarGain = 0):
+        bR = pd.Series(0.0, index = self.A.index)
+        Eb = pd.Series(0.0, index = self.A.index)
+        for n, d in self.bG.G.nodes(data=True):
+            if n == "sun":
+                Eb[n] = solarGain
+            else: 
+                wall = self.roomNode[n]["wall"]
+                T = wall.T_prof[d["T_index"]]
+                Eb[n] = self.sigma * T**4
+                print(T)
+            bR[n] = d["boundaryResistance"]
+        J = np.linalg.solve(self.A, Eb)
+        J = pd.Series(J, index = self.A.index)
+        q = (J - Eb) / bR
+        return  q * self.delt# radiative gain for each node
