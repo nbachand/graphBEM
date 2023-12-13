@@ -118,34 +118,6 @@ class BuildingSimulation():
                 d["Ef"] = 0 #resetting Ef for next time step
 
 
-    def runOld(self):
-        self.wall = self.bG.G.edges['R', 'R']["wall"]
-        self.room = self.bG.G.nodes['R']["room"]
-        self.vent = self.bG.G.nodes['R']["vent"]
-        Tints = np.zeros(self.N) # initializing interior air temp vector
-        Vnvs = np.zeros(self.N) # initializing ventilation energy vector
-        Tint = self.room.Tint
-        Tints[0] = Tint
-
-        T_profs = np.zeros((self.wall.n + 2, self.N)) # intializing matrix to store temperature profiles
-        T_profs[:, 0] = self.wall.getWallProfile(Tint, Tint)
-        nWalls = 3 #number of walls
-
-        for i in range(1, self.N):
-            self.t = self.times[i]
-            self.hour = self.t / 60 / 60
-
-            # Simulation logic
-            Ef = self.wall.timeStep(self.room.Tint, self.room.Tint)
-            Evt = self.vent.timeStep(self.t, Tint = self.room.Tint, Tout = self.Tout[i])
-            self.room.timeStep(nWalls * (Ef.front + Ef.back), Evt)
-
-            T_profs[:,i] = self.wall.T_prof
-            Tints[i] = self.room.Tint
-            Vnvs[i] = self.vent.Vnv
-        return Tints, T_profs, Vnvs
-
-
 class WallFlux:
     def __init__(self):
         self.front = None
