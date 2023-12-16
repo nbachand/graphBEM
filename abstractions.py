@@ -56,6 +56,7 @@ class BuildingSimulation():
         self.N = len(self.times)
         self.Tout = getEquivalentTimeSeries(self.Tout, self.times)
         self.radGF = getEquivalentTimeSeries(self.radG, self.times)
+        self.radDamping = self.delt / (1 + self.delt)# damping factor for radiation
 
     def initialize(self, bG):
         self.bG = bG
@@ -86,9 +87,17 @@ class BuildingSimulation():
             T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
             T_profs[:, 0] = w.getWallProfile(Tff, Tfb)
 
+            radEApplied = WallFlux()
+            radECalc = WallFlux()
+            for radE in [radEApplied, radECalc]:
+                radE.front = np.zeros(self.N)
+                radE.back = np.zeros(self.N)
+
             d.update({
                 "wall": w,
                 "T_profs": T_profs,
+                "radEApplied": radEApplied,
+                "radECalc": radECalc,
                 })
         for n, d in self.bG.G.nodes(data=True):
             rad = Radiation(**d["rad_kwargs"])
@@ -106,13 +115,21 @@ class BuildingSimulation():
             for n, d in self.bG.G.nodes(data=True):
                 q = d["rad"].timeStep(self.radGF[c])
                 q = q.dropna()
-                for wall, qwall in q.items():
+                for wall, qWall in q.items():
                     if wall == "sun":
                         continue
                     if n == self.bG.G.edges[n, wall]["front"]:
-                        self.bG.G.edges[wall, n]["wall"].qradF = qwall
+                        qOld = self.bG.G.edges[wall, n]["wall"].qradF
+                        self.bG.G.edges[(n, wall)]["radECalc"].front[c] = qWall
+                        qWall = (1 - self.radDamping) * qWall + self.radDamping * qOld
+                        self.bG.G.edges[(n, wall)]["radEApplied"].front[c] = qWall
+                        self.bG.G.edges[wall, n]["wall"].qradF = qWall
                     elif n == self.bG.G.edges[n, wall]["back"]:
-                        self.bG.G.edges[wall, n]["wall"].qradB = qwall
+                        qOld = self.bG.G.edges[wall, n]["wall"].qradB
+                        self.bG.G.edges[(n, wall)]["radECalc"].back[c] = qWall
+                        qWall = (1 - self.radDamping) * qWall + self.radDamping * qOld
+                        self.bG.G.edges[(n, wall)]["radEApplied"].back[c] = qWall
+                        self.bG.G.edges[wall, n]["wall"].qradB = qWall
                     else:
                         raise Exception("Wall front/back has been missassigned")
 
@@ -438,4 +455,4 @@ class Radiation:
         J = np.linalg.solve(self.A, Eb)
         J = pd.Series(J, index = self.A.index)
         q = (J - Eb) / bR
-        return  q/10 # radiative gain for each node
+        return  q # radiative gain for each node
