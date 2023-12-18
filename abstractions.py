@@ -82,6 +82,10 @@ class BuildingSimulation():
             w = WallSimulation(**d["wall_kwargs"])
             Tff = self.bG.G.nodes[d["front"]]["room"].Tint
             Tfb = self.bG.G.nodes[d["back"]]["room"].Tint
+            if d["front"] == "FL":
+                w.h.front = 1e6
+            elif d["back"] == "FL":
+                w.h.back = 1e6
             w.initialize(self.delt, Tff, Tfb)
 
             T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
@@ -156,9 +160,9 @@ class BuildingSimulation():
 
 
 class WallFlux:
-    def __init__(self):
-        self.front = None
-        self.back = None
+    def __init__(self, front = None, back = None):
+        self.front = front
+        self.back = back
 
 class RoomSimulation:
     def __init__(self, **kwargs):
@@ -194,7 +198,7 @@ class WallSimulation:
         self.kf = 0.8 #thermal conductivity of fabric
         self.Af = self.X * self.Y #fabric area
         self.th = 0.10 #fabric thickness 
-        self.h = 4 #fabric convection coefficient
+        self.h = WallFlux(4, 4) #fabric convection coefficient
         self.delx = 0.010 #spatial discretization size
         self.x = np.arange(0, self.th + self.delx, self.delx)
         self.alpha = 0.7 #fabric absorptivity
@@ -202,7 +206,8 @@ class WallSimulation:
     def initialize(self, delt, TfF, TfB):
         # Scaling factors
         self.lambda_val = (self.kf * delt) / (self.rhof * self.Cf * self.delx**2)
-        self.lambda_bound = self.kf / (self.h * self.delx)
+        self.lambda_bound_F = self.kf / (self.h.front * self.delx)
+        self.lambda_bound_B = self.kf / (self.h.back * self.delx)
 
         # Wall setup
         self.n = round(self.th / self.delx) - 1
@@ -212,8 +217,8 @@ class WallSimulation:
         r[-1] = self.lambda_val
 
         A_matrix = sp_linalg.toeplitz(r)
-        A_matrix[0, 0] += self.lambda_val * self.lambda_bound / (1 + self.lambda_bound)
-        A_matrix[-1, -1] = A_matrix[0, 0]
+        A_matrix[0, 0] += self.lambda_val * self.lambda_bound_F / (1 + self.lambda_bound_F)
+        A_matrix[-1, -1] += self.lambda_val * self.lambda_bound_B / (1 + self.lambda_bound_B)
         A_matrix[-1, 0] = 0
         A_matrix[0, -1] = 0
 
@@ -227,10 +232,10 @@ class WallSimulation:
         self.qradB = 0 #radiative heat flux at back
 
     def timeStep(self, TintF, TintB):
-        TintRadF = TintF + self.qradF / self.h
-        TintRadB = TintB + self.qradB / self.h
-        self.b[0] = self.lambda_val * TintRadF / (1 + self.lambda_bound)
-        self.b[-1] = self.lambda_val * TintRadB / (1 + self.lambda_bound)
+        TintRadF = TintF + self.qradF / self.h.front
+        TintRadB = TintB + self.qradB / self.h.back
+        self.b[0] = self.lambda_val * TintRadF / (1 + self.lambda_bound_F)
+        self.b[-1] = self.lambda_val * TintRadB / (1 + self.lambda_bound_B)
         self.T = np.dot(self.A, self.T) + self.b
         # self.T = np.linalg.solve(self.A, self.b)
         self.T_prof = self.getWallProfile(TintRadF, TintRadB)
@@ -238,15 +243,15 @@ class WallSimulation:
         Ef = WallFlux()
         # Ef.front = self.Af * (self.T_prof[1] - self.T_prof[0]) / self.delx
         # Ef.back = self.Af * (self.T_prof[-2] - self.T_prof[-1]) / self.delx
-        Ef.front = self.Af * (self.T_prof[0] - TintF) * self.h
-        Ef.back = self.Af * (self.T_prof[-1] - TintB) * self.h
+        Ef.front = self.Af * (self.T_prof[0] - TintF) * self.h.front
+        Ef.back = self.Af * (self.T_prof[-1] - TintB) * self.h.back
         return Ef
 
     def getWallProfile(self, TintF, TintB):
         T_prof = np.zeros(self.n + 2)
         T_prof[1:-1] = self.T
-        T_prof[0] = self.get_Tf(self.T[0], TintF, self.lambda_bound)
-        T_prof[-1] = self.get_Tf(self.T[-1], TintB, self.lambda_bound)
+        T_prof[0] = self.get_Tf(self.T[0], TintF, self.lambda_bound_F)
+        T_prof[-1] = self.get_Tf(self.T[-1], TintB, self.lambda_bound_B)
         return T_prof
 
     def get_Tf(self, T1, Tint, lambda_bound):
@@ -331,7 +336,7 @@ class VentilationSimulation:
             return self.timeStepHWP1(*args)
         if self.ventType == "HWP4":
             return self.timeStepHWP4(*args, **kwargs)
-        if self.ventType == "None":
+        if self.ventType == None:
             return 0
     
 
