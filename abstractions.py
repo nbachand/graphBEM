@@ -56,7 +56,7 @@ class BuildingSimulation():
         self.N = len(self.times)
         self.Tout = getEquivalentTimeSeries(self.Tout, self.times)
         self.radGF = getEquivalentTimeSeries(self.radG, self.times)
-        self.radDamping = self.delt / (1 + self.delt)# damping factor for radiation
+        self.radDamping = 0 #self.delt / (1 + self.delt)# damping factor for radiation
 
     def initialize(self, bG):
         self.bG = bG
@@ -232,8 +232,8 @@ class WallSimulation:
         self.qradB = 0 #radiative heat flux at back
 
     def timeStep(self, TintF, TintB):
-        TintRadF = TintF + self.qradF / self.h.front
-        TintRadB = TintB + self.qradB / self.h.back
+        TintRadF = TintF + (self.qradF / self.Af) / self.h.front
+        TintRadB = TintB + (self.qradB / self.Af) / self.h.back
         self.b[0] = self.lambda_val * TintRadF / (1 + self.lambda_bound_F)
         self.b[-1] = self.lambda_val * TintRadB / (1 + self.lambda_bound_B)
         self.T = np.dot(self.A, self.T) + self.b
