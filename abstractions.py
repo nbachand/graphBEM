@@ -55,7 +55,7 @@ class BuildingSimulation():
         self.hours = self.times / 60 / 60
         self.N = len(self.times)
         self.Tout = getEquivalentTimeSeries(self.Tout, self.times)
-        self.radGF = getEquivalentTimeSeries(self.radG, self.times)
+        self.radG = getEquivalentTimeSeries(self.radG, self.times)
         self.radDamping = 0 #self.delt / (1 + self.delt)# damping factor for radiation
 
     def initialize(self, bG):
@@ -117,7 +117,7 @@ class BuildingSimulation():
             # Simulation logic
             # Solve Radiation
             for n, d in self.bG.G.nodes(data=True):
-                q = d["rad"].timeStep(self.radGF[c])
+                q = d["rad"].timeStep(self.radG[c])
                 q = q.dropna()
                 for wall, qWall in q.items():
                     if wall == "sun":
