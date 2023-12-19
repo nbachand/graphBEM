@@ -35,9 +35,7 @@ class Radiation:
                 epislon = 1
                 A = 1 # doesn't matter sice epsilon = 1
             else:
-                self.roomNode[n]["nodes"].checkSides(n) # only for error checking
-                d["T_index"] = (n == self.roomNode[n]["nodes"].back) - 1 # -1 if front, 0 if back (reversed because front is in other room)
-                
+                d["T_index"] = self.roomNode[n]["nodes"].getSideIndex(n, reverse = True) # reversed because front is in other room
                 wall = self.roomNode[n]["wall"]
                 epislon = wall.alpha # opaque, diffuse, gray surface
                 d["X"] = wall.X  
