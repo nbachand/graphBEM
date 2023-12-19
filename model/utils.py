@@ -24,7 +24,40 @@ def graphToSysEqnKCL(graph):
 
     return A
 
-class WallFlux:
+def getSide(front, back, node):
+    if front == node:
+        return front
+    elif back == node:
+        return back
+    else:
+        raise Exception("Node not found in edge")
+
+class WallSides:
     def __init__(self, front = None, back = None):
         self.front = front
         self.back = back
+        self.updateFront = False
+        self.updateBack = False
+
+    def setUpdateFront(self):
+        self.updateFront = True
+        self.updateBack = False
+
+    def setUpdateBack(self):
+        self.updateFront = False
+        self.updateBack = True
+
+    def setUpdateBoth(self):
+        self.updateFront = True
+        self.updateBack = True
+
+    def update(self, val, reset = True):
+        if self.updateFront is True:
+            self.front = val
+        elif self.updateBack is True:
+            self.back = val
+        self.updateFront = False
+        self.updateBack = False
+
+    def checkSides(self, side):
+        return getSide(self.front, self.back, side)
