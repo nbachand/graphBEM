@@ -45,19 +45,19 @@ class BuildingSimulation():
                       })
         for i, j, d in self.bG.G.edges(data=True):
             w = ws.WallSimulation(**d["wall_kwargs"])
-            Tff = self.bG.G.nodes[d["front"]]["room"].Tint
-            Tfb = self.bG.G.nodes[d["back"]]["room"].Tint
-            if d["front"] == "FL":
+            Tff = self.bG.G.nodes[d["nodes"].front]["room"].Tint
+            Tfb = self.bG.G.nodes[d["nodes"].back]["room"].Tint
+            if d["nodes"].front == "FL":
                 w.h.front = 1e6
-            elif d["back"] == "FL":
+            elif d["nodes"].back == "FL":
                 w.h.back = 1e6
             w.initialize(self.delt, Tff, Tfb)
 
             T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
             T_profs[:, 0] = w.getWallProfile(Tff, Tfb)
 
-            radEApplied = WallFlux()
-            radECalc = WallFlux()
+            radEApplied = WallSides()
+            radECalc = WallSides()
             for radE in [radEApplied, radECalc]:
                 radE.front = np.zeros(self.N)
                 radE.back = np.zeros(self.N)
@@ -87,27 +87,26 @@ class BuildingSimulation():
                 for wall, EWall in E.items():
                     if wall == "sun":
                         continue
-                    if n == self.bG.G.edges[n, wall]["front"]:
-                        EOld = self.bG.G.edges[wall, n]["wall"].EradF
-                        self.bG.G.edges[(n, wall)]["radECalc"].front[c] = EWall
-                        EWall = (1 - self.radDamping) * EWall + self.radDamping * EOld
-                        self.bG.G.edges[(n, wall)]["radEApplied"].front[c] = EWall
-                        self.bG.G.edges[wall, n]["wall"].EradF = EWall
-                    elif n == self.bG.G.edges[n, wall]["back"]:
-                        EOld = self.bG.G.edges[wall, n]["wall"].EradB
-                        self.bG.G.edges[(n, wall)]["radECalc"].back[c] = EWall
-                        EWall = (1 - self.radDamping) * EWall + self.radDamping * EOld
-                        self.bG.G.edges[(n, wall)]["radEApplied"].back[c] = EWall
-                        self.bG.G.edges[wall, n]["wall"].EradB = EWall
-                    else:
-                        raise Exception("Wall front/back has been missassigned")
-
+                    self.bG.G.edges[n, wall]["nodes"].checkSides(n) # only for error checking
+                    if n == self.bG.G.edges[n, wall]["nodes"].front:
+                        radECalc = self.bG.G.edges[(n, wall)]["radECalc"].front
+                        radEApplied = self.bG.G.edges[(n, wall)]["radEApplied"].front
+                        self.bG.G.edges[(n, wall)]["wall"].Erad.setUpdateFront()
+                    elif n == self.bG.G.edges[n, wall]["nodes"].back:
+                        radECalc = self.bG.G.edges[(n, wall)]["radECalc"].back
+                        radEApplied = self.bG.G.edges[(n, wall)]["radEApplied"].back
+                        self.bG.G.edges[(n, wall)]["wall"].Erad.setUpdateBack()
+                    radECalc[c] = EWall # leveraging pass by assignment here
+                    Ewall = (1 - self.radDamping) * EWall + self.radDamping * radEApplied[c - 1]
+                    radEApplied[c] = Ewall
+                    self.bG.G.edges[(n, wall)]["wall"].Erad.update(Ewall)
+                    self.bG.G.edges[(n, wall)]["wall"].Erad.back = self.bG.G.edges[(n, wall)]["radEApplied"].back[c]
 
             # Solve Walls
             for i, j, d in self.bG.G.edges(data=True):
-                Ef = d["wall"].timeStep(self.bG.G.nodes[d["front"]]["room"].Tint, self.bG.G.nodes[d["back"]]["room"].Tint)
-                self.bG.G.nodes[d["front"]]["Ef"] += Ef.front * d["weight"]
-                self.bG.G.nodes[d["back"]]["Ef"] += Ef.back * d["weight"]
+                Ef = d["wall"].timeStep(self.bG.G.nodes[d["nodes"].front]["room"].Tint, self.bG.G.nodes[d["nodes"].back]["room"].Tint)
+                self.bG.G.nodes[d["nodes"].front]["Ef"] += Ef.front * d["weight"]
+                self.bG.G.nodes[d["nodes"].back]["Ef"] += Ef.back * d["weight"]
                 d["T_profs"][:,c] = d["wall"].T_prof
 
             # Solve Rooms

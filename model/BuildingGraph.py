@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import networkx as nx
 from copy import deepcopy
+from model.utils import *
 
 class BuildingGraph:
     def __init__(self, connectivityMatrix:np.array =  np.array([[]]), roomList:list = []):
@@ -14,12 +15,12 @@ class BuildingGraph:
         for i in range(self.n): # solved nodes
             for j in range(i, self.m): # forcing nodes
                 if connectivityMatrix[i, j] != 0:
+                    sides = WallSides(roomList[i][0], roomList[j][0])
                     self.G.add_edge(
                         roomList[i][0], 
                         roomList[j][0], 
                         weight = connectivityMatrix[i, j],
-                        front = roomList[i][0],
-                        back = roomList[j][0]
+                        nodes = sides
                         )
 
     def draw(self):
