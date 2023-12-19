@@ -51,9 +51,16 @@ class BuildingGraph:
         plt.axis("off")
         plt.tight_layout()
 
-    def updateEdges(self, properties: dict, nodes = None):
+    def updateEdges(self, properties: dict, nodes = None, edges = None):
+        """
+        nodes updates all edges with the node in the list while edges specifies the exact edges to update
+        """
         for i, j, d in self.G.edges(data=True):
-            if nodes is None or i in nodes or j in nodes:
+            if nodes is None and edges is None:
+                d.update(deepcopy(properties))
+            if nodes is not None and (i in nodes or j in nodes):
+                d.update(deepcopy(properties))
+            if edges is not None and ((i, j) in edges or (j, i) in edges):
                 d.update(deepcopy(properties))
 
     def updateNodes(self, properties: dict, nodes = None):
