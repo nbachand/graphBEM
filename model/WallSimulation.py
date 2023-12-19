@@ -44,12 +44,12 @@ class WallSimulation:
         self.T_prof = np.linspace(TfF, TfB, self.n + 2) #create a uniform temperature profile between Tff and Tfb of length n
         self.T = self.T_prof[1:-1] #remove the boundary temperatures from the temperature profile
 
-        self.qradF = 0 #radiative heat flux at front
-        self.qradB = 0 #radiative heat flux at back
+        self.EradF = 0 #radiative heat flux at front (area averaged)
+        self.EradB = 0 #radiative heat flux at back (area)
 
     def timeStep(self, TintF, TintB):
-        TintRadF = TintF + (self.qradF / self.Af) / self.h.front
-        TintRadB = TintB + (self.qradB / self.Af) / self.h.back
+        TintRadF = TintF + self.EradF / self.h.front
+        TintRadB = TintB + self.EradB / self.h.back
         self.b[0] = self.lambda_val * TintRadF / (1 + self.lambda_bound_F)
         self.b[-1] = self.lambda_val * TintRadB / (1 + self.lambda_bound_B)
         self.T = np.dot(self.A, self.T) + self.b

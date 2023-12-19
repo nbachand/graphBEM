@@ -82,23 +82,23 @@ class BuildingSimulation():
             # Simulation logic
             # Solve Radiation
             for n, d in self.bG.G.nodes(data=True):
-                q = d["rad"].timeStep(self.radG[c])
-                q = q.dropna()
-                for wall, qWall in q.items():
+                E = d["rad"].timeStep(self.radG[c])
+                E = E.dropna()
+                for wall, EWall in E.items():
                     if wall == "sun":
                         continue
                     if n == self.bG.G.edges[n, wall]["front"]:
-                        qOld = self.bG.G.edges[wall, n]["wall"].qradF
-                        self.bG.G.edges[(n, wall)]["radECalc"].front[c] = qWall
-                        qWall = (1 - self.radDamping) * qWall + self.radDamping * qOld
-                        self.bG.G.edges[(n, wall)]["radEApplied"].front[c] = qWall
-                        self.bG.G.edges[wall, n]["wall"].qradF = qWall
+                        EOld = self.bG.G.edges[wall, n]["wall"].EradF
+                        self.bG.G.edges[(n, wall)]["radECalc"].front[c] = EWall
+                        EWall = (1 - self.radDamping) * EWall + self.radDamping * EOld
+                        self.bG.G.edges[(n, wall)]["radEApplied"].front[c] = EWall
+                        self.bG.G.edges[wall, n]["wall"].EradF = EWall
                     elif n == self.bG.G.edges[n, wall]["back"]:
-                        qOld = self.bG.G.edges[wall, n]["wall"].qradB
-                        self.bG.G.edges[(n, wall)]["radECalc"].back[c] = qWall
-                        qWall = (1 - self.radDamping) * qWall + self.radDamping * qOld
-                        self.bG.G.edges[(n, wall)]["radEApplied"].back[c] = qWall
-                        self.bG.G.edges[wall, n]["wall"].qradB = qWall
+                        EOld = self.bG.G.edges[wall, n]["wall"].EradB
+                        self.bG.G.edges[(n, wall)]["radECalc"].back[c] = EWall
+                        EWall = (1 - self.radDamping) * EWall + self.radDamping * EOld
+                        self.bG.G.edges[(n, wall)]["radEApplied"].back[c] = EWall
+                        self.bG.G.edges[wall, n]["wall"].EradB = EWall
                     else:
                         raise Exception("Wall front/back has been missassigned")
 

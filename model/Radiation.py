@@ -68,15 +68,19 @@ class Radiation:
     def timeStep(self, solarGain = 0):
         bR = pd.Series(0.0, index = self.A.index)
         Eb = pd.Series(0.0, index = self.A.index)
+        A = pd.Series(0.0, index = self.A.index)
         for n, d in self.bG.G.nodes(data=True):
             if n == "sun":
                 Eb[n] = solarGain
+                A[n] = 1
             else: 
                 wall = self.roomNode[n]["wall"]
                 T = wall.T_prof[d["T_index"]]
                 Eb[n] = self.sigma * T**4
+                A[n] = d['X'] * d['Y']
             bR[n] = d["boundaryResistance"]
         J = np.linalg.solve(self.A, Eb)
         J = pd.Series(J, index = self.A.index)
         q = (J - Eb) / bR
-        return  q # radiative gain for each node
+        E = q / A #are averaged radiative heat flux
+        return E
