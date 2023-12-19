@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# C extensions
+*.so
+
+# Distribution / packaging
+dist/
+build/
+eggs/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+__env__/
+
+# IDE specific files
+.vscode/
+.idea/
+
+# Compiled Python files
+*.pyc
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Output files
+*.out
+
+# Environment specific files
+.env
+
+# Jupyter Notebook temporary files
+.ipynb_checkpoints/
+
+# User-specific files
+*.suo
+*.user
+*.sln.docstates
+
+# pyinstaller
+build/
+*.spec
