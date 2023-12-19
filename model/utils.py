@@ -24,15 +24,22 @@ def graphToSysEqnKCL(graph):
 
     return A
 
-def getSide(front, back, node):
+def getSide(front, back, node, throwException = True):
     if front == node:
         return front
     elif back == node:
         return back
     else:
-        raise Exception("Node not found in edge")
+        if throwException:
+            raise Exception("Node not found in edge")
+        else:
+            return ''
+        
 
 class WallSides:
+    """
+    Class to keep track of both wall surfaces and providing some useful methods
+    """
     def __init__(self, front = None, back = None):
         self.front = front
         self.back = back
@@ -59,5 +66,11 @@ class WallSides:
         self.updateFront = False
         self.updateBack = False
 
-    def checkSides(self, side):
-        return getSide(self.front, self.back, side)
+    def checkSides(self, side, throwException = True):
+        return getSide(self.front, self.back, side, throwException = throwException)
+    
+    def getSideIndex(self, side, reverse = False):
+        self.checkSides(side) # only for error checking
+        if reverse:
+            return (side == self.back) - 1
+        return (n == self.front) - 1 # -1 if front, 0 if back (reversed because front is in other room)
