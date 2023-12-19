@@ -6,6 +6,7 @@ from model.utils import *
 
 class BuildingGraph:
     def __init__(self, connectivityMatrix:np.array =  np.array([[]]), roomList:list = []):
+        roomList = [(r, {}) if isinstance(r, str) else r for r in roomList] # adding empty dicts if no dict is provided
         self.connectivityMatrix = connectivityMatrix
         self.roomList = roomList
         self.n = connectivityMatrix.shape[0]
