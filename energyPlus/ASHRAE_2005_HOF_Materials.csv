@@ -1,0 +1,205 @@
+Name,key,Roughness,Thickness,Conductivity,Density,Specific_Heat
+F06 EIFS finish,Material,Smooth,0.0095,0.72,1856.0,840.0
+F07 25mm stucco,Material,Smooth,0.0254,0.72,1856.0,840.0
+F08 Metal surface,Material,Smooth,0.0008,45.28,7824.0,500.0
+F09 Opaque spandrel glass,Material,Smooth,0.0064,0.99,2528.0,880.0
+F10 25mm stone,Material,MediumRough,0.0254,3.17,2560.0,790.0
+F11 Wood siding,Material,MediumSmooth,0.0127,0.09,592.0,1170.0
+F12 Asphalt shingles,Material,VeryRough,0.0032,0.04,1120.0,1260.0
+F13 Built-up roofing,Material,Rough,0.0095,0.16,1120.0,1460.0
+F14 Slate or tile,Material,VeryRough,0.0127,1.59,1920.0,1260.0
+F15 Wood shingles,Material,VeryRough,0.0064,0.04,592.0,1300.0
+F16 Acoustic tile,Material,MediumSmooth,0.0191,0.06,368.0,590.0
+F17 Carpet,Material,MediumRough,0.0127,0.06,288.0,1380.0
+F18 Terrazzo,Material,Rough,0.0254,1.8,2560.0,790.0
+G01 16mm gypsum board,Material,MediumSmooth,0.0159,0.16,800.0,1090.0
+G01a 19mm gypsum board,Material,MediumSmooth,0.019,0.16,800.0,1090.0
+G02 16mm plywood,Material,Smooth,0.0159,0.12,544.0,1210.0
+G03 13mm fiberboard sheathing,Material,Smooth,0.0127,0.07,400.0,1300.0
+G04 13mm wood,Material,MediumSmooth,0.0127,0.15,608.0,1630.0
+G05 25mm wood,Material,MediumSmooth,0.0254,0.15,608.0,1630.0
+G06 50mm wood,Material,MediumSmooth,0.0508,0.15,608.0,1630.0
+G07 100mm wood,Material,MediumSmooth,0.1016,0.15,608.0,1630.0
+I01 25mm insulation board,Material,MediumRough,0.0254,0.03,43.0,1210.0
+I02 50mm insulation board,Material,MediumRough,0.0508,0.03,43.0,1210.0
+I03 75mm insulation board,Material,MediumRough,0.0762,0.03,43.0,1210.0
+I04 89mm batt insulation,Material,VeryRough,0.0894,0.05,19.0,960.0
+I05 154mm batt insulation,Material,VeryRough,0.1544,0.05,19.0,960.0
+I06 244mm batt insulation,Material,VeryRough,0.2438,0.05,19.0,960.0
+M01 100mm brick,Material,MediumRough,0.1016,0.89,1920.0,790.0
+M02 150mm lightweight concrete block,Material,MediumRough,0.1524,0.49,512.0,880.0
+M03 200mm lightweight concrete block,Material,MediumRough,0.2032,0.5,464.0,880.0
+M04 300mm lightweight concrete block,Material,MediumRough,0.3048,0.71,512.0,880.0
+M05 200mm concrete block,Material,MediumRough,0.2032,1.11,800.0,920.0
+M06 300mm concrete block,Material,MediumRough,0.3048,1.4,800.0,920.0
+M07 150mm lightweight concrete block (filled),Material,MediumRough,0.1524,0.29,512.0,880.0
+M08 200mm lightweight concrete block (filled),Material,MediumRough,0.2032,0.26,464.0,880.0
+M09 300mm lightweight concrete block (filled),Material,MediumRough,0.3048,0.29,512.0,880.0
+M10 200mm concrete block (filled),Material,MediumRough,0.2032,0.72,800.0,920.0
+M11 100mm lightweight concrete,Material,MediumRough,0.1016,0.53,1280.0,840.0
+M12 150mm lightweight concrete,Material,MediumRough,0.1524,0.53,1280.0,840.0
+M13 200mm lightweight concrete,Material,MediumRough,0.2032,0.53,1280.0,840.0
+M14a 100mm heavyweight concrete,Material,MediumRough,0.1016,1.95,2240.0,900.0
+M14 150mm heavyweight concrete,Material,MediumRough,0.1524,1.95,2240.0,900.0
+M15 200mm heavyweight concrete,Material,MediumRough,0.2032,1.95,2240.0,900.0
+M16 300mm heavyweight concrete,Material,MediumRough,0.3048,1.95,2240.0,900.0
+M17 50mm lightweight concrete roof ballast,Material,MediumRough,0.0508,0.19,640.0,840.0
+Asbestos-cement board - 3.2mm,Material,Smooth,0.0032,0.58,1900.0,1000.0
+Asbestos-cement board - 6.4mm,Material,Smooth,0.0064,0.58,1900.0,1000.0
+Gypsum or plaster board - 9.5mm,Material,MediumSmooth,0.0095,0.58,800.0,1090.0
+Gypsum or plaster board - 2.7mm,Material,MediumSmooth,0.0027,0.58,800.0,1090.0
+Gypsum or plaster board - 5.9mm,Material,MediumSmooth,0.0059,0.58,800.0,1090.0
+Plywood (Douglas Fir) - 6.4mm,Material,MediumSmooth,0.0064,0.12,540.0,1210.0
+Plywood (Douglas Fir) - 9.5mm,Material,Smooth,0.0095,0.12,540.0,1210.0
+Plywood (Douglas Fir) - 12.7mm,Material,Smooth,0.0127,0.12,540.0,1210.0
+Plywood (Douglas Fir) - 15.9mm,Material,Smooth,0.0159,0.12,540.0,1210.0
+Plywood or wood panels - 19.0mm,Material,Smooth,0.019,0.12,540.0,1210.0
+Sheathing - regular density - 12.7mm,Material,Smooth,0.0127,0.055,290.0,1300.0
+Sheathing - regular density - 19.8mm,Material,Smooth,0.0198,0.055,290.0,1300.0
+Sheathing intermediate density - 12.7mm,Material,Smooth,0.0127,0.057,350.0,1300.0
+Nail-base sheathing - 12.7mm,Material,Smooth,0.0127,0.057,400.0,1300.0
+Shingle backer - 9.5mm,Material,Smooth,0.0095,0.063,290.0,1300.0
+Shingle backer - 7.9mm,Material,Smooth,0.0079,0.063,290.0,1300.0
+Sound deadening board,Material,Smooth,0.0127,0.063,240.0,1260.0
+Tile and lay-in panels - plain or acoustic - 12.7mm,Material,MediumSmooth,0.0127,0.057,290.0,590.0
+Tile and lay-in panels - plain or acoustic - 19mm,Material,MediumSmooth,0.019,0.057,290.0,590.0
+Laminated paperboard,Material,MediumSmooth,0.0032,0.072,480.0,1380.0
+Homogeneous board from repulped paper,Material,MediumSmooth,0.0032,0.072,480.0,1170.0
+Hardboard Medium density,Material,Smooth,0.019,0.105,800.0,1300.0
+Hardboard High density - service-tempered grade and service grade,Material,Smooth,0.019,0.82,880.0,1340.0
+Hardboard High density - standard-tempered grade,Material,Smooth,0.019,0.144,1010.0,1340.0
+Particleboard Low density,Material,MediumSmooth,0.019,0.102,590.0,1300.0
+Particleboard Medium density,Material,MediumSmooth,0.019,0.135,800.0,1300.0
+Particleboard High density,Material,MediumSmooth,0.019,0.17,1000.0,1300.0
+Particleboard Underlayment - 15.9mm,Material,MediumRough,0.0159,0.311,640.0,1210.0
+Waferboard,Material,MediumSmooth,0.019,0.091,590.0,1300.0
+Wood subfloor - 19mm,Material,MediumSmooth,0.019,0.115,800.0,1380.0
+Insulation: Cellular glass - 25mm,Material,MediumRough,0.025,0.05,136.0,750.0
+Insulation: Cellular glass - 50mm,Material,MediumRough,0.05,0.05,136.0,750.0
+Insulation: Cellular glass - 75mm,Material,MediumRough,0.075,0.05,136.0,750.0
+Insulation: Glass fiber - organic bonded - 25mm,Material,MediumRough,0.025,0.036,64.0,960.0
+Insulation: Glass fiber - organic bonded - 50mm,Material,MediumRough,0.05,0.036,140.0,960.0
+Insulation: Glass fiber - organic bonded - 75mm,Material,MediumRough,0.075,0.036,140.0,960.0
+Insulation: Expanded perlite - organic bonded - 25mm,Material,MediumSmooth,0.025,0.052,16.0,1260.0
+Insulation: Expanded rubber (rigid) - 25mm,Material,MediumRough,0.025,0.032,72.0,1680.0
+Insulation: Expanded polystyrene - extruded (smooth skin surface) (CFC-12 exp.),Material,MediumSmooth,0.025,0.029,29.0,1210.0
+Insulation: Expanded polystyrene - extruded (smooth skin surface) (HCFC-142b exp.),Material,MediumSmooth,0.025,0.029,29.0,1210.0
+Insulation: Expanded polystyrene - molded beads - 16kg/m3 density,Material,VeryRough,0.025,0.037,16.0,1210.0
+Insulation: Expanded polystyrene - molded beads - 20kg/m3 density,Material,VeryRough,0.025,0.036,20.0,1210.0
+Insulation: Expanded polystyrene - molded beads - 24kg/m3 density,Material,VeryRough,0.025,0.035,24.0,1210.0
+Insulation: Expanded polystyrene - molded beads - 28 k6/m3 density,Material,VeryRough,0.025,0.035,28.0,1210.0
+Insulation: Expanded polystyrene - molded beads - 32 kg/m3 density,Material,VeryRough,0.025,0.033,32.0,1210.0
+Insulation: Cellular polyurethane/polyisocyanuratei (CFC11 exp.) (unfaced),Material,Rough,0.025,0.0245,24.0,1590.0
+Insulation: Cellular polyisocyanuratei (CFC-11 exp.) (gaspermeable facers),Material,Rough,0.025,0.0245,32.0,920.0
+Insulation: Cellular polyisocyanuratej (CFC-11 exp.) (gasimpermeable facers),Material,Rough,0.025,0.02,32.0,920.0
+Brick - fired clay - 2400 kg/m3 - 102mm,Material,MediumRough,0.102,1.34,2400.0,790.0
+Brick - fired clay - 2240 kg/m3 - 102mm,Material,MediumRough,0.102,1.185,2240.0,790.0
+Brick - fired clay - 2080 kg/m3 - 102mm,Material,MediumRough,0.102,1.02,2080.0,790.0
+Brick - fired clay - 1920 kg/m3 - 102mm,Material,MediumRough,0.102,0.895,1920.0,790.0
+Brick - fired clay - 1760 kg/m3 - 102mm,Material,MediumRough,0.102,0.78,1760.0,790.0
+Brick - fired clay - 1600 kg/m3 - 102mm,Material,MediumRough,0.102,0.675,1600.0,790.0
+Brick - fired clay - 1440 kg/m3 - 102mm,Material,MediumRough,0.102,0.57,1440.0,790.0
+Brick - fired clay - 1280 kg/m3 - 102mm,Material,MediumRough,0.102,0.48,1280.0,790.0
+Brick - fired clay - 1120 kg/m3 - 102mm,Material,MediumRough,0.102,0.405,1120.0,790.0
+Quartzitic and sandstone - 2880 kg/m3 - 13mm,Material,MediumRough,0.013,10.4,2880.0,790.0
+Quartzitic and sandstone - 2560 kg/m3 - 13mm,Material,MediumRough,0.013,6.2,2560.0,790.0
+Quartzitic and sandstone - 2240 kg/m3 - 13mm,Material,MediumRough,0.013,3.5,2240.0,790.0
+Quartzitic and sandstone - 1920 kg/m3 - 13mm,Material,MediumRough,0.013,1.9,1920.0,790.0
+Calcitic - dolomitic - limestone - marble - and granite - 2880 kg/m3 - 13mm,Material,MediumRough,0.013,4.3,2880.0,790.0
+Calcitic - dolomitic - limestone - marble - and granite - 2560 kg/m3 - 13mm,Material,MediumRough,0.013,3.2,2560.0,790.0
+Calcitic - dolomitic - limestone - marble - and granite - 2240 kg/m3 - 13mm,Material,MediumRough,0.013,2.3,2240.0,790.0
+Calcitic - dolomitic - limestone - marble - and granite - 1920 kg/m3 - 13mm,Material,MediumRough,0.013,1.6,1920.0,790.0
+Calcitic - dolomitic - limestone - marble - and granite - 1600 kg/m3 - 13mm,Material,MediumRough,0.013,1.1,1600.0,790.0
+Concrete: Sand and gravel or stone aggregate concretes - 2400 kg/m3 - 51mm,Material,MediumRough,0.051,2.15,2400.0,900.0
+Concrete: Sand and gravel or stone aggregate concretes - 2240 kg/m3 - 51mm,Material,MediumRough,0.051,1.95,2240.0,900.0
+Concrete: Sand and gravel or stone aggregate concretes - 2080 kg/m3 - 51mm,Material,MediumRough,0.051,1.45,2080.0,900.0
+Concrete: Limestone concretes - 2240 kg/m3 - 51mm,Material,MediumRough,0.051,1.6,2240.0,900.0
+Concrete: Limestone concretes - 1920 kg/m3 - 51mm,Material,MediumRough,0.051,1.14,1920.0,900.0
+Concrete: Limestone concretes - 1600 kg/m3 - 51mm,Material,MediumRough,0.051,0.79,1600.0,900.0
+Concrete: Gypsum-fiber concrete (87.5% gypsum - 12.5% wood chips) - 51mm,Material,MediumRough,0.051,0.24,816.0,880.0
+Concrete: Cement/lime - mortar - and stucco - 1920 kg/m3 - 51mm,Material,MediumRough,0.051,1.4,1920.0,900.0
+Concrete: Cement/lime - mortar - and stucco - 1600 kg/m3 - 51mm,Material,MediumRough,0.051,0.97,1600.0,900.0
+Concrete: Cement/lime - mortar - and stucco - 1280 kg/m3 - 51mm,Material,MediumRough,0.051,0.65,1280.0,900.0
+Concrete: Expanded shale - clay - slate - expanded slags - cinders - pumice - 1920 kg/m3 - 51mm,Material,MediumRough,0.051,1.1,1920.0,840.0
+Concrete: Expanded shale - clay - slate - expanded slags - cinders - pumice - 1600 kg/m3 - 51mm,Material,MediumRough,0.051,0.785,1600.0,840.0
+Concrete: Expanded shale - clay - slate - expanded slags - cinders - pumice - 1280 kg/m3 - 51mm,Material,MediumRough,0.051,0.535,1280.0,840.0
+Concrete: Expanded shale - clay - slate - expanded slags - cinders - pumice - 960 kg/m3 - 51mm,Material,MediumRough,0.051,0.33,960.0,840.0
+Concrete: Expanded shale - clay - slate - expanded slags - cinders - pumice - 640 kg/m3 - 51mm,Material,MediumRough,0.051,0.18,640.0,840.0
+Concrete: Perlite - vermiculite - and polystyrene beads - 800 kg/m3 - 51mm,Material,MediumRough,0.051,0.265,800.0,795.0
+Concrete: Perlite - vermiculite - and polystyrene beads - 640 kg/m3 - 51mm,Material,MediumRough,0.051,0.21,640.0,795.0
+Concrete: Perlite - vermiculite - and polystyrene beads - 480 kg/m3 - 51mm,Material,MediumRough,0.051,0.16,480.0,795.0
+Concrete: Perlite - vermiculite - and polystyrene beads - 320 kg/m3 - 51mm,Material,MediumRough,0.051,0.12,320.0,795.0
+Concrete: Foam concretes - 1920 kg/m3 - 51mm,Material,MediumRough,0.051,0.75,1920.0,900.0
+Concrete: Foam concretes - 1600 kg/m3 - 51mm,Material,MediumRough,0.051,0.6,1600.0,900.0
+Concrete: Foam concretes - 1280 kg/m3 - 51mm,Material,MediumRough,0.051,0.44,1280.0,900.0
+Concrete: Foam concretes - 1120 kg/m3 - 51mm,Material,MediumRough,0.051,0.36,1120.0,900.0
+Concrete: Foam concretes and cellular concretes - 960 kg/m3 - 51mm,Material,MediumRough,0.051,0.3,960.0,900.0
+Concrete: Foam concretes and cellular concretes - 640 kg/m3 - 51mm,Material,MediumRough,0.051,0.2,640.0,900.0
+Concrete: Foam concretes and cellular concretes - 320 kg/m3 - 51mm,Material,MediumRough,0.051,0.12,320.0,900.0
+Concrete: Sand and gravel or stone aggregate concretes - 2400 kg/m3 - 102mm,Material,MediumRough,0.102,2.15,2400.0,900.0
+Concrete: Sand and gravel or stone aggregate concretes - 2240 kg/m3 - 102mm,Material,MediumRough,0.102,1.95,2240.0,900.0
+Concrete: Sand and gravel or stone aggregate concretes - 2080 kg/m3 - 102mm,Material,MediumRough,0.102,1.45,2080.0,900.0
+Concrete: Limestone concretes - 2240 kg/m3 - 102mm,Material,MediumRough,0.102,1.6,2240.0,900.0
+Concrete: Limestone concretes - 1920 kg/m3 - 102mm,Material,MediumRough,0.102,1.14,1920.0,900.0
+Concrete: Limestone concretes - 1600 kg/m3 - 102mm,Material,MediumRough,0.102,0.79,1600.0,900.0
+Concrete: Gypsum-fiber concrete (87.5% gypsum - 12.5% wood chips) - 102mm,Material,MediumRough,0.102,0.24,816.0,880.0
+Concrete: Cement/lime - mortar - and stucco - 1920 kg/m3 - 102mm,Material,MediumRough,0.102,1.4,1920.0,900.0
+Concrete: Cement/lime - mortar - and stucco - 1600 kg/m3 - 102mm,Material,MediumRough,0.102,0.97,1600.0,900.0
+Concrete: Cement/lime - mortar - and stucco - 1280 kg/m3 - 102mm,Material,MediumRough,0.102,0.65,1280.0,900.0
+Concrete: Expanded shale - clay - slate - expanded slags - cinders - pumice - 1920 kg/m3 - 102mm,Material,MediumRough,0.102,1.1,1920.0,840.0
+Concrete: Expanded shale - clay - slate - expanded slags - cinders - pumice - 1600 kg/m3 - 102mm,Material,MediumRough,0.102,0.785,1600.0,840.0
+Concrete: Expanded shale - clay - slate - expanded slags - cinders - pumice - 1280 kg/m3 - 102mm,Material,MediumRough,0.102,0.535,1280.0,840.0
+Concrete: Expanded shale - clay - slate - expanded slags - cinders - pumice - 960 kg/m3 - 102mm,Material,MediumRough,0.102,0.33,960.0,840.0
+Concrete: Expanded shale - clay - slate - expanded slags - cinders - pumice - 640 kg/m3 - 102mm,Material,MediumRough,0.102,0.18,640.0,840.0
+Concrete: Perlite - vermiculite - and polystyrene beads - 800 kg/m3 - 102mm,Material,MediumRough,0.102,0.265,800.0,795.0
+Concrete: Perlite - vermiculite - and polystyrene beads - 640 kg/m3 - 102mm,Material,MediumRough,0.102,0.21,640.0,795.0
+Concrete: Perlite - vermiculite - and polystyrene beads - 480 kg/m3 - 102mm,Material,MediumRough,0.102,0.16,480.0,795.0
+Concrete: Perlite - vermiculite - and polystyrene beads - 320 kg/m3 - 102mm,Material,MediumRough,0.102,0.12,320.0,795.0
+Concrete: Foam concretes - 1920 kg/m3 - 102mm,Material,MediumRough,0.102,0.75,1920.0,900.0
+Concrete: Foam concretes - 1600 kg/m3 - 102mm,Material,MediumRough,0.102,0.6,1600.0,900.0
+Concrete: Foam concretes - 1280 kg/m3 - 102mm,Material,MediumRough,0.102,0.44,1280.0,900.0
+Concrete: Foam concretes - 1120 kg/m3 - 102mm,Material,MediumRough,0.102,0.36,1120.0,900.0
+Concrete: Foam concretes and cellular concretes - 960 kg/m3 - 102mm,Material,MediumRough,0.102,0.3,960.0,900.0
+Concrete: Foam concretes and cellular concretes - 640 kg/m3 - 102mm,Material,MediumRough,0.102,0.2,640.0,900.0
+Concrete: Foam concretes and cellular concretes - 320 kg/m3 - 102mm,Material,MediumRough,0.102,0.12,320.0,900.0
+Hardwood - 12.9mm,Material,MediumSmooth,0.0129,0.167,680.0,1630.0
+Hardwood - 19mm,Material,MediumSmooth,0.019,0.167,680.0,1630.0
+Hardwood - 25mm,Material,MediumSmooth,0.025,0.167,680.0,1630.0
+Oak - 25mm,Material,MediumSmooth,0.025,0.17,704.0,1630.0
+Birch - 25mm,Material,MediumSmooth,0.025,0.172,704.0,1630.0
+Maple - 25mm,Material,MediumSmooth,0.025,0.164,671.0,1630.0
+Ash - 25mm,Material,MediumSmooth,0.025,0.159,642.0,1630.0
+Softwood - 12.9mm,Material,MediumSmooth,0.0129,0.129,496.0,1630.0
+Softwood - 19mm,Material,MediumSmooth,0.019,0.129,496.0,1630.0
+Softwood - 25mm,Material,MediumSmooth,0.025,0.129,496.0,1630.0
+Southern Pine - 25mm,Material,MediumSmooth,0.025,0.153,615.0,1630.0
+Douglas Fir-Larch - 25mm,Material,MediumSmooth,0.025,0.141,559.0,1630.0
+Southern Cypress - 25mm,Material,MediumSmooth,0.025,0.131,508.0,1630.0
+Hem-Fir - Spruce-Pine-Fir - 25mm,Material,MediumSmooth,0.025,0.119,447.0,1630.0
+West Coast Woods - Cedars - 25mm,Material,MediumSmooth,0.025,0.114,425.0,1630.0
+California Redwood - 25mm,Material,MediumSmooth,0.025,0.113,420.0,1630.0
+Concrete Block: Limestone Aggregrate: 200mm - 16.3 kg - 2 cores,Material,MediumRough,0.2,1.13,2210.0,920.0
+Concrete Block: Limestone Aggregrate: 200mm - 16.3 kg - 2 cores - perlite filled cores,Material,MediumRough,0.2,1.13,2210.0,920.0
+Concrete Block: Limestone Aggregrate: 300mm - 25 kg - 2 cores,Material,MediumRough,0.3,1.13,2210.0,920.0
+Concrete Block: Limestone Aggregrate: 300mm - 25 kg - 2 cores - perlite filled cores,Material,MediumRough,0.3,1.13,2210.0,920.0
+Concrete Block: Sand and Gravel Aggregrate: 15-16 kg - 2 or 3 cores,Material,MediumRough,0.2,1.13,2180.0,920.0
+Concrete Block: Sand and Gravel Aggregrate: 15-16 kg - 2 or 3 cores - perlite filled cores,Material,MediumRough,0.2,1.13,2180.0,920.0
+Concrete Block: Sand and Gravel Aggregrate: 15-16 kg - 2 or 3 cores - vermiculite filled cores,Material,MediumRough,0.2,1.13,2180.0,920.0
+Concrete Block: Sand and Gravel Aggregrate: 22.7 kg - 2 cores,Material,MediumRough,0.3,1.13,2000.0,920.0
+Concrete Block: Medium Mass Aggregate: 2 or 3 cores,Material,MediumRough,0.3,1.13,1790.0,920.0
+Concrete Block: Medium Mass Aggregate: 2 or 3 cores - perlite filled cores,Material,MediumRough,0.3,1.13,1790.0,920.0
+Concrete Block: Medium Mass Aggregate: 2 or 3 cores - vermiculite filled cores,Material,MediumRough,0.3,1.13,1790.0,920.0
+Concrete Block: Medium Mass Aggregate: 2 or 3 cores - molded EPS (beads) filled cores,Material,MediumRough,0.3,1.13,1790.0,920.0
+Concrete Block: Medium Mass Aggregate: 2 or 3 cores - molded EPS inserts in cores,Material,MediumRough,0.3,1.13,1790.0,920.0
+Concrete Block: Low Mass Aggregate: 7.3-7.7 kg - 2 or 3 cores,Material,MediumRough,0.15,0.33,1390.0,880.0
+Concrete Block: Low Mass Aggregate: 7.3-7.7 kg - 2 or 3 cores - perlite filled cores,Material,MediumRough,0.15,0.33,1390.0,880.0
+Concrete Block: Low Mass Aggregate: 7.3-7.7 kg - 2 or 3 cores - vermiculite filled cores,Material,MediumRough,0.15,0.33,1390.0,880.0
+Concrete Block: Low Mass Aggregate: 8.6-10.0 kg,Material,MediumRough,0.2,0.33,1380.0,880.0
+Concrete Block: Low Mass Aggregate: 8.6-10.0 kg - perlite filled cores,Material,MediumRough,0.2,0.33,1380.0,880.0
+Concrete Block: Low Mass Aggregate: 8.6-10.0 kg - vermiculite filled cores,Material,MediumRough,0.2,0.33,1380.0,880.0
+Concrete Block: Low Mass Aggregate: 8.6-10.0 kg - molded EPS (beads) filled cores,Material,MediumRough,0.2,0.33,1380.0,880.0
+Concrete Block: Low Mass Aggregate: 8.6-10.0 kg - UF foam filled cores,Material,MediumRough,0.2,0.33,1380.0,880.0
+Concrete Block: Low Mass Aggregate: 8.6-10.0 kg - molded EPS inserts in cores,Material,MediumRough,0.2,0.33,1380.0,880.0
+Concrete Block: Low Mass Aggregate: 14.5-16.3 kg - 2 or 3 cores,Material,MediumRough,0.3,0.33,1440.0,880.0
+Concrete Block: Low Mass Aggregate: 14.5-16.3 kg - 2 or 3 cores - perlite filled cores,Material,MediumRough,0.3,0.33,1440.0,880.0
+Concrete Block: Low Mass Aggregate: 14.5-16.3 kg - 2 or 3 cores - vermiculite filled cores,Material,MediumRough,0.3,0.33,1440.0,880.0
