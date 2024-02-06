@@ -5,15 +5,14 @@ from model.utils import *
 class WallSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["X", "Y"])
+        expected_kwards = set(["X", "Y", "th"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         # Constants
         self.rhof = 2300 #density of fabric
         self.Cf = 750 #specific heat capacity of fabric
         self.kf = 0.8 #thermal conductivity of fabric
-        self.Af = self.X * self.Y #fabric area
-        self.th = 0.10 #fabric thickness 
+        self.Af = self.X * self.Y #fabric areas
         self.h = WallSides(4, 4) #fabric convection coefficient
         self.delx = 0.010 #spatial discretization size
         self.x = np.arange(0, self.th + self.delx, self.delx)

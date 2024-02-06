@@ -1,0 +1,16 @@
+Name,key,Outside_Layer,Layer_2,Layer_3,Layer_4,Layer_5
+Light Exterior Wall,Construction,F08 Metal surface,I02 50mm insulation board,F04 Wall air space resistance,G01a 19mm gypsum board,
+Light Roof/Ceiling,Construction,M11 100mm lightweight concrete,F05 Ceiling air space resistance,F16 Acoustic tile,,
+Light Partitions,Construction,G01a 19mm gypsum board,F04 Wall air space resistance,G01a 19mm gypsum board,,
+Light Floor,Construction,F16 Acoustic tile,F05 Ceiling air space resistance,M11 100mm lightweight concrete,,
+Light Furnishings,Construction,G05 25mm wood,,,,
+Medium Exterior Wall,Construction,M01 100mm brick,I02 50mm insulation board,F04 Wall air space resistance,G01a 19mm gypsum board,
+Medium Roof/Ceiling,Construction,M14a 100mm heavyweight concrete,F05 Ceiling air space resistance,F16 Acoustic tile,,
+Medium Partitions,Construction,G01a 19mm gypsum board,F04 Wall air space resistance,G01a 19mm gypsum board,,
+Medium Floor,Construction,F16 Acoustic tile,F05 Ceiling air space resistance,M14a 100mm heavyweight concrete,,
+Medium Furnishings,Construction,G05 25mm wood,,,,
+Heavy Exterior Wall,Construction,M01 100mm brick,M15 200mm heavyweight concrete,I02 50mm insulation board,F04 Wall air space resistance,G01a 19mm gypsum board
+Heavy Roof/Ceiling,Construction,M15 200mm heavyweight concrete,F05 Ceiling air space resistance,F16 Acoustic tile,,
+Heavy Partitions,Construction,G01a 19mm gypsum board,M05 200mm concrete block,G01a 19mm gypsum board,,
+Heavy Floor,Construction,F16 Acoustic tile,F05 Ceiling air space resistance,M15 200mm heavyweight concrete,,
+Heavy Furnishings,Construction,G05 25mm wood,,,,

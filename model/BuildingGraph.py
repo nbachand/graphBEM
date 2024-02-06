@@ -60,9 +60,9 @@ class BuildingGraph:
         for i, j, d in self.G.edges(data=True):
             if nodes is None and edges is None:
                 d.update(deepcopy(properties))
-            if nodes is not None and (i in nodes or j in nodes):
+            elif nodes is not None and (i in nodes or j in nodes):
                 d.update(deepcopy(properties))
-            if edges is not None and ((i, j) in edges or (j, i) in edges):
+            elif edges is not None and ((i, j) in edges or (j, i) in edges):
                 d.update(deepcopy(properties))
 
     def updateNodes(self, properties: dict, nodes = None):
