@@ -105,11 +105,8 @@ class WallSimulation:
         self.T_prof = self.getWallProfile(TintRadF, TintRadB)
 
         Ef = WallSides()
-        Ef.front = self.Af * (self.T_prof[1] - self.T_prof[0]) / self.delx
-        Ef.back = self.Af * (self.T_prof[-2] - self.T_prof[-1]) / self.delx
         Ef.front = self.Af * (self.T_prof[0] - TintF) * self.h.front
         Ef.back = self.Af * (self.T_prof[-1] - TintB) * self.h.back
-        print(Ef.front, Ef.back)
         return Ef
 
     def getWallProfile(self, TintF, TintB):
