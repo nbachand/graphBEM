@@ -31,22 +31,22 @@ class BuildingGraph:
         elarge = [(u, v) for (u, v, d) in self.G.edges(data=True) if d["weight"] > 0.5]
         esmall = [(u, v) for (u, v, d) in self.G.edges(data=True) if d["weight"] <= 0.5]
 
-        pos = nx.spring_layout(self.G, seed=7)  # positions for all nodes - seed for reproducibility
+        pos = nx.spiral_layout(self.G)  # positions for all nodes - seed for reproducibility
 
         # nodes
-        nx.draw_networkx_nodes(self.G, pos, node_size=700)
+        nx.draw_networkx_nodes(self.G, pos, node_size=200)
 
         # edges
-        nx.draw_networkx_edges(self.G, pos, edgelist=elarge, width=6)
+        nx.draw_networkx_edges(self.G, pos, edgelist=elarge, width=2)
         nx.draw_networkx_edges(
-            self.G, pos, edgelist=esmall, width=6, alpha=0.5, edge_color="b", style="dashed"
+            self.G, pos, edgelist=esmall, width=3, alpha=0.5, edge_color="b", style="dashed"
         )
 
         # node labels
-        nx.draw_networkx_labels(self.G, pos, font_size=20, font_family="sans-serif")
+        nx.draw_networkx_labels(self.G, pos, font_size=10, font_family="sans-serif")
         # edge weight labels
         edge_labels = nx.get_edge_attributes(self.G, "weight")
-        nx.draw_networkx_edge_labels(self.G, pos, edge_labels)
+        nx.draw_networkx_edge_labels(self.G, pos, edge_labels, font_size=6)
 
         ax = plt.gca()
         ax.margins(0.08)
