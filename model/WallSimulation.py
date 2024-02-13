@@ -33,7 +33,7 @@ class WallSimulation:
                 material_df.loc[index, "Density"] = 12 # large enough for reasonable time step
                 material_df.loc[index, "Specific_Heat"] = 1005 # specific heat of air
         material_df["depth"] = material_df["Thickness"].cumsum()
-        print(material_df)
+        # print(material_df)
 
         self.kfs = np.zeros(self.n) #= 2300 #density of fabric
         self.rhofs = np.zeros(self.n) #= 750 #specific heat capacity of fabric
@@ -71,23 +71,23 @@ class WallSimulation:
 
         self.A = A_matrix
 
-        ###########################
-        # Plot the color plot
-        import plotly.graph_objs as go
-        import plotly.express as px
-        # Create a heatmap figure
-        fig = go.Figure(data=go.Heatmap(z=self.A, colorscale='Viridis'))
+        # ###########################
+        # # Plot the color plot
+        # import plotly.graph_objs as go
+        # import plotly.express as px
+        # # Create a heatmap figure
+        # fig = go.Figure(data=go.Heatmap(z=self.A, colorscale='Viridis'))
 
-        # Update layout
-        fig.update_layout(
-            title='Heatmap of Matrix',
-            xaxis_title='X-axis',
-            yaxis_title='Y-axis'
-        )
+        # # Update layout
+        # fig.update_layout(
+        #     title='Heatmap of Matrix',
+        #     xaxis_title='X-axis',
+        #     yaxis_title='Y-axis'
+        # )
 
-        # Show the figure
-        fig.show()
-        ###########################
+        # # Show the figure
+        # fig.show()
+        # ###########################
 
         self.b = np.zeros(self.n)
         self.T_prof = np.linspace(TfF, TfB, self.n + 2) #create a uniform temperature profile between Tff and Tfb of length n
