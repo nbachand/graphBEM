@@ -44,24 +44,26 @@ class BuildingSimulation():
                       "Ef": 0,
                       })
         for i, j, d in self.bG.G.edges(data=True):
-            w = ws.WallSimulation(**d["wall_kwargs"])
-            Tff = self.bG.G.nodes[d["nodes"].front]["room"].Tint
-            Tfb = self.bG.G.nodes[d["nodes"].back]["room"].Tint
+            w = ws.WallSimulation(**d["wall_kwargs"]) # instantiate wall
+            Tff = self.bG.G.nodes[d["nodes"].front]["room"].Tint #set wall front fabric temp    
+            Tfb = self.bG.G.nodes[d["nodes"].back]["room"].Tint # set wall back fabric temp
+            # set arbitrarily large convective heat transfer coefficient for floor-to-ground interface
             if d["nodes"].front == "FL":
                 w.h.front = 1e6
             elif d["nodes"].back == "FL":
                 w.h.back = 1e6
-            w.initialize(self.delt, Tff, Tfb)
+            w.initialize(self.delt, Tff, Tfb) #initialize wall
 
             T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
-            T_profs[:, 0] = w.getWallProfile(Tff, Tfb)
+            T_profs[:, 0] = w.getWallProfile(Tff, Tfb) # store initial temperature profile
 
-            radEApplied = WallSides()
-            radECalc = WallSides()
+            radEApplied = WallSides() # initialize applied radiation as wall-side object
+            radECalc = WallSides() # initialize calculated radiation as wall-side object
             for radE in [radEApplied, radECalc]:
                 radE.front = np.zeros(self.N)
                 radE.back = np.zeros(self.N)
 
+            # store wall and related data as edge properties in graph 
             d.update({
                 "wall": w,
                 "T_profs": T_profs,
