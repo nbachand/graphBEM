@@ -17,6 +17,24 @@ def getVFAlignedRectangles(X, Y, L):
         Ybar * np.arctan(Ybar)
         )
 
+def getVFPerpRectanglesCommonEdge(X, Y, Z):
+    H = Z / X
+    W = Y / X
+    return (1 / (np.pi * W)
+    * (
+        W * np.arctan(1 / W)
+        + H * np.arctan(1 / H)
+        - np.sqrt(H**2 + W**2) * np.arctan(1 / np.sqrt(H**2 + W**2))
+        + 0.25 * np.log(
+            (1 + W**2) * (1 + H**2)
+            / (1 + W**2 + H**2)
+            * (W**2 * (1 + W**2 + H**2) / ((1 + W**2) * (W**2 + H**2)))**W**2
+            * (H**2 * (1 + H**2 + W**2) / ((1 + H**2) * (H**2 + W**2)))**H**2
+        )
+    )
+)
+
+
 class Radiation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
