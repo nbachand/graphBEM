@@ -87,7 +87,7 @@ class BuildingSimulation():
                 E = d["rad"].timeStep(self.radG[c])
                 E = E.dropna()
                 for wall, EWall in E.items():
-                    if wall == "sun":
+                    if wall == "sky":
                         continue
                     self.bG.G.edges[n, wall]["nodes"].checkSides(n) # only for error checking
                     if n == self.bG.G.edges[n, wall]["nodes"].front:
