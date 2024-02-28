@@ -12,11 +12,12 @@ import plotly.express as px
 
 def runMyBEM(
         weather_data,
-        wallMaterial, 
-        partitionMaterial,
-        roofMaterial,
-        floorMaterial,
+        materials,
         makePlots = True):
+    wallMaterial = materials["wall"]
+    partitionMaterial = materials["partition"]
+    roofMaterial = materials["roof"]
+    floorMaterial = materials["floor"]
     times = weather_data.index.to_series().apply(lambda x: x.timestamp())
     times -= times[0]
     Touts = weather_data["Dry Bulb Temperature"].values + 273.15
