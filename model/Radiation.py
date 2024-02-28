@@ -17,6 +17,24 @@ def getVFAlignedRectangles(X, Y, L):
         Ybar * np.arctan(Ybar)
         )
 
+def getVFPerpRectanglesCommonEdge(X, Y, Z):
+    H = Z / X
+    W = Y / X
+    return (1 / (np.pi * W)
+    * (
+        W * np.arctan(1 / W)
+        + H * np.arctan(1 / H)
+        - np.sqrt(H**2 + W**2) * np.arctan(1 / np.sqrt(H**2 + W**2))
+        + 0.25 * np.log(
+            (1 + W**2) * (1 + H**2)
+            / (1 + W**2 + H**2)
+            * (W**2 * (1 + W**2 + H**2) / ((1 + W**2) * (W**2 + H**2)))**W**2
+            * (H**2 * (1 + H**2 + W**2) / ((1 + H**2) * (H**2 + W**2)))**H**2
+        )
+    )
+)
+
+
 class Radiation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
@@ -31,8 +49,8 @@ class Radiation:
         self.roomNode = roomNode
         # assign properties to raidation graph
         for n, d in self.bG.G.nodes(data=True):
-            if n == "sun":
-                epislon = 1
+            if n == "sky":
+                epislon = 1 # This is not the true emmisivity (using W to specify sky intensity) but ignores reflected radiation
                 A = 1 # doesn't matter sice epsilon = 1
             else:
                 d["T_index"] = self.roomNode[n]["nodes"].getSideIndex(n, reverse = True) # reversed because front is in other room
@@ -44,10 +62,10 @@ class Radiation:
             d["boundaryResistance"] = (1 - epislon) / (epislon * A)
 
         for i, j, d in self.bG.G.edges(data=True):
-            #don't use properties of "sun" node
-            if i == "sun":
+            #don't use properties of "sky" node
+            if i == "sky":
                 i = j
-            elif j == "sun":
+            elif j == "sky":
                 j = i
             #calc radiance resistance
             X = self.bG.G.nodes[i]["X"]
@@ -64,7 +82,7 @@ class Radiation:
         Eb = pd.Series(0.0, index = self.A.index)
         A = pd.Series(0.0, index = self.A.index)
         for n, d in self.bG.G.nodes(data=True):
-            if n == "sun":
+            if n == "sky":
                 Eb[n] = solarGain
                 A[n] = 1
             else: 

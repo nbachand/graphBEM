@@ -21,7 +21,7 @@ def runMyBEM(
     times = weather_data.index.to_series().apply(lambda x: x.timestamp())
     times -= times[0]
     Touts = weather_data["Dry Bulb Temperature"].values + 273.15
-    rad = weather_data["Direct Normal Radiation"].values
+    rad = weather_data["Total Sky Radiation"].values
 
     # Plotting the weather data
     if makePlots:
@@ -103,7 +103,7 @@ def runMyBEM(
                 [-1, 0, 0, 0, 0],
                 [-1, 0, 0, 0, 0],
             ]),
-            ["sun", "SS", "DR", "CV",  "CR", ]
+            ["sky", "SS", "DR", "CV",  "CR", ]
         ),
     }
 
