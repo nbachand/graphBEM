@@ -2,10 +2,9 @@ import numpy as np
 import networkx as nx
 import pandas as pd
 from model.utils import *
+from matplotlib import pyplot as plt
 
 def getVFAlignedRectangles(X, Y, L):
-    if L == -1:
-        return 1
     Xbar = X / L
     Ybar = Y / L
 
@@ -38,17 +37,36 @@ def getVFPerpRectanglesCommonEdge(X, Y, Z):
 class Radiation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["bG"])
+        expected_kwards = set(["solveType"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         
         # Constants
         self.sigma = 5.67e-8
+        self.storyHeight = 3
 
     def initialize(self, roomNode:nx.classes.coreviews.AtlasView):
-        self.roomNode = roomNode
-        # assign properties to raidation graph
-        for n, d in self.bG.G.nodes(data=True):
+        self.roomNode = dict(roomNode)
+        surfaces = list(self.roomNode.keys())
+        self.G = nx.Graph()
+        # construct graphs based on radiation solve type
+        if self.solveType == None:
+            return
+        self.G.add_nodes_from(surfaces)
+        if self.solveType == "sky":
+            self.G.add_node("sky")
+            for surface in surfaces:
+                self.G.add_edge(surface, "sky")
+        if self.solveType == "room":
+            for surface in surfaces:
+                if surface != "RF":
+                    self.G.add_edge(surface, "RF")
+                if surface != "FL":
+                    self.G.add_edge(surface, "FL")
+        nx.draw(self.G, with_labels=True)
+
+        # consturct radiation graph for the room (roof to floor, including via walls)
+        for n, d in self.G.nodes(data=True):
             if n == "sky":
                 epislon = 1 # This is not the true emmisivity (using W to specify sky intensity) but ignores reflected radiation
                 A = 1 # doesn't matter sice epsilon = 1
@@ -61,27 +79,39 @@ class Radiation:
                 A = d["X"] * d["Y"]
             d["boundaryResistance"] = (1 - epislon) / (epislon * A)
 
-        for i, j, d in self.bG.G.edges(data=True):
+        for i, j, d in self.G.edges(data=True):
             #don't use properties of "sky" node
             if i == "sky":
                 i = j
             elif j == "sky":
                 j = i
             #calc radiance resistance
-            X = self.bG.G.nodes[i]["X"]
-            Y = self.bG.G.nodes[i]["Y"]
-            if X != self.bG.G.nodes[j]["X"] or Y != self.bG.G.nodes[j]["Y"]:
-                raise Exception("Dimmensions of adjacent nodes must be equal")
+            X = self.G.nodes[i]["X"]
+            Y = self.G.nodes[i]["Y"]
             A = X * Y
-            F = getVFAlignedRectangles(X, Y, d["weight"])
+            if self.solveType == "sky":
+                F = 1
+            elif set([i, j]) == set(["RF", "FL"]):
+                if X != self.G.nodes[j]["X"] or Y != self.G.nodes[j]["Y"]:
+                    raise Exception("Dimmensions of roof and floor do not match")
+                F = getVFAlignedRectangles(X, Y, self.storyHeight)
+            else:
+                Z = [self.G.nodes[j]["X"], self.G.nodes[j]["Y"]]
+                if X not in Z:
+                    raise Exception("Dimmension along seam of {i} and {j} do not match")
+                Z.remove(X)
+                F = getVFPerpRectanglesCommonEdge(X, Y, Z[0])  
             d["radianceResistance"] = (A * F) ** -1
-        self.A = graphToSysEqnKCL(self.bG.G)
+        plt.figure()
+        self.A = graphToSysEqnKCL(self.G)
 
     def timeStep(self, solarGain = 0):
+        if self.solveType == None:
+            return pd.Series()
         bR = pd.Series(0.0, index = self.A.index)
         Eb = pd.Series(0.0, index = self.A.index)
         A = pd.Series(0.0, index = self.A.index)
-        for n, d in self.bG.G.nodes(data=True):
+        for n, d in self.G.nodes(data=True):
             if n == "sky":
                 Eb[n] = solarGain
                 A[n] = 1
