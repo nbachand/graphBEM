@@ -70,8 +70,8 @@ def runMyBEM(
     Ls = []
 
     sim_kwargs = {
-        "delt": times[1] - times[0],
-        "simLength": times[-1] - times[0],
+        "delt": times.values[1] - times.values[0],
+        "simLength": times.values[-1] - times.values[0],
         "Tout" : Touts,
         "radG": rad,
         "Tfloor": np.mean(Touts) - 2.5,
@@ -95,26 +95,11 @@ def runMyBEM(
         "Ls": Ls,
     }
     rad_kwargs_RF = {
-        "bG": bg.BuildingGraph(
-            np.array([
-                [0, -1, -1, -1, -1],
-                [-1, 0, 0, 0, 0],
-                [-1, 0, 0, 0, 0],
-                [-1, 0, 0, 0, 0],
-                [-1, 0, 0, 0, 0],
-            ]),
-            ["sky", "SS", "DR", "CV",  "CR", ]
-        ),
+        "solveType": "sky"
     }
 
     rad_kwargs_FL = {
-        "bG": bg.BuildingGraph(
-            np.array([
-                [0, 3],
-                [3, 0],
-            ]),
-            ["RF", "FL"]
-        ),
+        "solveType": "room"
     }
 
     bG.updateEdges({"wall_kwargs" :wall_kwargs})
@@ -127,7 +112,7 @@ def runMyBEM(
     bG.updateNodes({
         "room_kwargs": room_kwargs,
         "vent_kwargs": vent_kwargs,
-        "rad_kwargs": {"bG": bg.BuildingGraph()},
+        "rad_kwargs": {"solveType": None},
         })
     bG.updateNodes({"rad_kwargs": rad_kwargs_RF}, nodes=["RF"])
     bG.updateNodes({"rad_kwargs": rad_kwargs_FL}, nodes=["SS", "DR", "CV", "CR"])
