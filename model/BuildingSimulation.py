@@ -72,6 +72,7 @@ class BuildingSimulation():
                 })
         for n, d in self.bG.G.nodes(data=True):
             rad = rd.Radiation(**d["rad_kwargs"])
+            print(f"Initializing radiation for {n}")
             rad.initialize(self.bG.G[n])
             d.update({"rad": rad})
 

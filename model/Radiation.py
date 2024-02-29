@@ -1,8 +1,8 @@
 import numpy as np
-import networkx as nx
 import pandas as pd
+import networkx as nx
 from model.utils import *
-from matplotlib import pyplot as plt
+from model.BuildingGraph import draw
 
 def getVFAlignedRectangles(X, Y, L):
     Xbar = X / L
@@ -33,7 +33,6 @@ def getVFPerpRectanglesCommonEdge(X, Y, Z):
     )
 )
 
-
 class Radiation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
@@ -45,7 +44,7 @@ class Radiation:
         self.sigma = 5.67e-8
         self.storyHeight = 3
 
-    def initialize(self, roomNode:nx.classes.coreviews.AtlasView):
+    def initialize(self, roomNode:nx.classes.coreviews.AtlasView, drawGraphs = True):
         self.roomNode = dict(roomNode)
         surfaces = list(self.roomNode.keys())
         self.G = nx.Graph()
@@ -63,7 +62,6 @@ class Radiation:
                     self.G.add_edge(surface, "RF")
                 if surface != "FL":
                     self.G.add_edge(surface, "FL")
-        nx.draw(self.G, with_labels=True)
 
         # consturct radiation graph for the room (roof to floor, including via walls)
         for n, d in self.G.nodes(data=True):
@@ -102,7 +100,8 @@ class Radiation:
                 Z.remove(X)
                 F = getVFPerpRectanglesCommonEdge(X, Y, Z[0])  
             d["radianceResistance"] = (A * F) ** -1
-        plt.figure()
+        if drawGraphs:
+            draw(self.G, weight = "radianceResistance")
         self.A = graphToSysEqnKCL(self.G)
 
     def timeStep(self, solarGain = 0):
