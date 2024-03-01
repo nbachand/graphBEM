@@ -95,7 +95,7 @@ class BuildingSimulation():
                         radECalc = self.bG.G.edges[(n, wall)]["radECalc"].front
                         radEApplied = self.bG.G.edges[(n, wall)]["radEApplied"].front
                         self.bG.G.edges[(n, wall)]["wall"].Erad.setUpdateFront()
-                    elif n == self.bG.G.edges[n, wall]["nodes"].back:
+                    if n == self.bG.G.edges[n, wall]["nodes"].back:
                         radECalc = self.bG.G.edges[(n, wall)]["radECalc"].back
                         radEApplied = self.bG.G.edges[(n, wall)]["radEApplied"].back
                         self.bG.G.edges[(n, wall)]["wall"].Erad.setUpdateBack()
