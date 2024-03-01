@@ -70,7 +70,14 @@ class WallSides:
         return getSide(self.front, self.back, side, throwException = throwException)
     
     def getSideIndex(self, side, reverse = False):
-        self.checkSides(side) # only for error checking
-        if reverse:
-            return (side == self.back) - 1
-        return (n == self.front) - 1 # -1 if front, 0 if back (reversed because front is in other room)
+        isFront = (side == self.front)
+        isBack = (side == self.back)
+        frontIndex = 0 - reverse
+        backIndex = -1 + reverse
+        if isFront and isBack:
+            return 999 # code for both sides
+        if isFront:
+            return frontIndex # if reversed, front is in other room so return -1
+        if isBack: 
+            return backIndex # if reversed, back is in other room so return 0
+        raise Exception("Node not found in edge")
