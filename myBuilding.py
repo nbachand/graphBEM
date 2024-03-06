@@ -302,8 +302,8 @@ def runMyBEM(
             if makePlots:
                 plt.plot(build_sim.hours, diff, label=n)
                 plt.scatter(hVent, diff[iVent])
-    outputs["ceilingMinusFloor"] = np.mean(delVent)
-    outputs["outMinusFloor"] = np.mean(delOutFloor)
+    outputs["ceilingMinusFloor"] = delVent[-1]
+    outputs["outMinusFloor"] = delOutFloor[-1]
     if verbose:
         display(f'Average "ceiling - floor" temperature difference at ventilation time: {outputs["ceilingMinusFloor"]}')
         display(f'Average "outdoor - floor" temperature difference at ventilation time: {outputs["outMinusFloor"]}')
@@ -327,9 +327,9 @@ def runMyBEM(
                     plt.plot(build_sim.hours, diff, label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[side])
                     plt.scatter(hVent, diff[iVent], color = colors[c])
                     c = (c + 1) % len(colors)
-    outputs["intWallMinusFloor"] = np.mean(delVent)
+    outputs["intWallMinusFloor"] = delVent[-1]
     if verbose:
-        display(f'Average "interior wall - floor" temperature difference at ventilation time: {np.mean(delVent)}')
+        display(f'Average "interior wall - floor" temperature difference at ventilation time: {outputs["intWallMinusFloor"]}')
 
     if makePlots:
         plt.figure()
@@ -349,7 +349,7 @@ def runMyBEM(
                 plt.plot(build_sim.hours, diff, label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[0])
                 plt.scatter(hVent, diff[iVent], color = colors[c])
                 c = (c + 1) % len(colors)
-    outputs["extWallMinusFloor"] = np.mean(delVent)
+    outputs["extWallMinusFloor"] = delVent[-1]
     if verbose:
         display(f'Average "exterior wall - floor" temperature difference at ventilation time: {outputs["extWallMinusFloor"]}')
     
