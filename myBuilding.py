@@ -8,13 +8,12 @@ import seaborn as sns
 import networkx as nx
 from epw import epw
 import plotly.express as px
-import dask
 
-@dask.delayed
 def runMyBEM(
         weather_data,
         materials,
-        makePlots = True):
+        verbose = False,
+        makePlots = False):
     
     outputs = {}
     wallMaterial = materials["wall"]
@@ -127,17 +126,18 @@ def runMyBEM(
     build_sim.initialize(bG)
     build_sim.run()
 
+    #### General Plots
+
+    Tints_avg = []
     if makePlots:
-
-        #### General Plots
-
-        Tints_avg = []
         plt.figure()
-        for n, d in build_sim.bG.G.nodes(data=True):
-            if n in interiorRooms:
+    for n, d in build_sim.bG.G.nodes(data=True):
+        if n in interiorRooms:
+            Tints_avg.append(d['Tints'])
+            if makePlots:
                 plt.plot(build_sim.hours, d['Tints'], label=n)
-                Tints_avg.append(d['Tints'])
-        Tints_avg = np.mean(np.array(Tints_avg), axis = 0)
+    Tints_avg = np.mean(np.array(Tints_avg), axis = 0)
+    if makePlots:
         plt.plot(build_sim.hours, Tints_avg, label="Average Interior Temperature", color = 'k', linestyle = '--')
         plt.plot(build_sim.hours, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = ':')
         plt.legend()
@@ -273,7 +273,8 @@ def runMyBEM(
         if T_old > 0 and T <= 0:
             hVent.append(build_sim.hours[i])
             iVent.append(i)
-            print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
+            if verbose:
+                print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
         T_old = T
 
     if makePlots:
@@ -303,8 +304,9 @@ def runMyBEM(
                 plt.scatter(hVent, diff[iVent])
     outputs["ceilingMinusFloor"] = np.mean(delVent)
     outputs["outMinusFloor"] = np.mean(delOutFloor)
-    display(f'Average "ceiling - floor" temperature difference at ventilation time: {outputs["ceilingMinusFloor"]}')
-    display(f'Average "outdoor - floor" temperature difference at ventilation time: {outputs["outMinusFloor"]}')
+    if verbose:
+        display(f'Average "ceiling - floor" temperature difference at ventilation time: {outputs["ceilingMinusFloor"]}')
+        display(f'Average "outdoor - floor" temperature difference at ventilation time: {outputs["outMinusFloor"]}')
     
     if makePlots:
         plt.figure()
@@ -326,7 +328,8 @@ def runMyBEM(
                     plt.scatter(hVent, diff[iVent], color = colors[c])
                     c = (c + 1) % len(colors)
     outputs["intWallMinusFloor"] = np.mean(delVent)
-    display(f'Average "interior wall - floor" temperature difference at ventilation time: {np.mean(delVent)}')
+    if verbose:
+        display(f'Average "interior wall - floor" temperature difference at ventilation time: {np.mean(delVent)}')
 
     if makePlots:
         plt.figure()
@@ -347,6 +350,7 @@ def runMyBEM(
                 plt.scatter(hVent, diff[iVent], color = colors[c])
                 c = (c + 1) % len(colors)
     outputs["extWallMinusFloor"] = np.mean(delVent)
-    display(f'Average "exterior wall - floor" temperature difference at ventilation time: {outputs["extWallMinusFloor"]}')
+    if verbose:
+        display(f'Average "exterior wall - floor" temperature difference at ventilation time: {outputs["extWallMinusFloor"]}')
     
     return outputs
