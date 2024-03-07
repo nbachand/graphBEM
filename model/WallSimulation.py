@@ -48,10 +48,11 @@ class WallSimulation:
             self.Cfs[i] = material["Specific_Heat"]
 
 
-    def initialize(self, delt, TfF, TfB):
+    def initialize(self, delt, TfF, TfB, verbose = False):
         # Scaling factors
         self.lambda_vals = (delt / self.delx**2) * self.kfs / (self.rhofs * self.Cfs)
-        print(f"maximum time step: {np.min(delt/self.lambda_vals)}")
+        if verbose:
+            print(f"maximum time step: {np.min(delt/self.lambda_vals)}")
         self.lambda_bound = WallSides()
         self.lambda_bound.front = self.kfs[0] / (self.h.front * self.delx)
         self.lambda_bound.back = self.kfs[-1] / (self.h.back * self.delx)

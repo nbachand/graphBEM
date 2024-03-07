@@ -23,7 +23,7 @@ class BuildingSimulation():
         self.radG = getEquivalentTimeSeries(self.radG, self.times)
         self.radDamping = 0 #self.delt / (1 + self.delt)# damping factor for radiation
 
-    def initialize(self, bG:bg.BuildingGraph):
+    def initialize(self, bG:bg.BuildingGraph, verbose = False):
         self.bG = bG
         for n, d in self.bG.G.nodes(data=True):
             r = rs.RoomSimulation(**d["room_kwargs"])
@@ -72,7 +72,8 @@ class BuildingSimulation():
                 })
         for n, d in self.bG.G.nodes(data=True):
             rad = rd.Radiation(**d["rad_kwargs"])
-            print(f"Initializing radiation for {n}")
+            if verbose:
+                print(f"Initializing radiation for {n}")
             rad.initialize(self.bG.G[n])
             d.update({"rad": rad})
 
