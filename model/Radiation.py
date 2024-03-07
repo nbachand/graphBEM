@@ -44,7 +44,7 @@ class Radiation:
         self.sigma = 5.67e-8
         self.storyHeight = 3
 
-    def initialize(self, roomNode:nx.classes.coreviews.AtlasView, drawGraphs = True):
+    def initialize(self, roomNode:nx.classes.coreviews.AtlasView, drawGraphs = False):
         self.roomNode = dict(roomNode)
         surfaces = list(self.roomNode.keys())
         self.G = nx.Graph()
