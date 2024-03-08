@@ -5,13 +5,11 @@ from model.utils import *
 class WallSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["X", "Y", "material_df"])
+        expected_kwards = set(["X", "Y", "material_df", "h", "alpha"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         # Constants
         self.Af = self.X * self.Y #fabric areas
-        self.h = WallSides(4, 4) #fabric convection coefficient
-        self.alpha = 0.7 #fabric absorptivity
         self.processMaterialDict(self.material_df)
         self.x = np.linspace(0, self.th, self.n + 2)
 
