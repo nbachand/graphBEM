@@ -12,6 +12,10 @@ import plotly.express as px
 def runMyBEM(
         weather_data,
         materials,
+        floorTempAdjustment,
+        hInterior,
+        hExterior,
+        alphaRoof,
         verbose = False,
         makePlots = False):
     
@@ -21,7 +25,8 @@ def runMyBEM(
     roofMaterial = materials["roof"]
     floorMaterial = materials["floor"]
     times = weather_data.index.to_series().apply(lambda x: x.timestamp())
-    times -= times[0]
+    times -= times.iloc[0]
+    dt = times.iloc[1]
     Touts = weather_data["Dry Bulb Temperature"].values + 273.15
     rad = weather_data["Total Sky Radiation"].values
 
@@ -76,12 +81,12 @@ def runMyBEM(
         "simLength": times.values[-1] - times.values[0],
         "Tout" : Touts,
         "radG": rad,
-        "Tfloor": np.mean(Touts) - 2.5,
+        "Tfloor": np.mean(Touts) + floorTempAdjustment,
     }
-    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial}
-    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial}
-    wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial}
-    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial}
+    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "alpha" : 0.7}
+    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior), "alpha" : 0.7}
+    wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, hExterior), "alpha" : alphaRoof}
+    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "alpha" : 0.7}
 
     room_kwargs = {
         "T0": Touts[0],
@@ -262,15 +267,14 @@ def runMyBEM(
     #### Ventilation Times:
     Tout_minus_in = build_sim.Tout - Tints_avg
 
-    # Tvent = 297
     hVent = []
     iVent = []
-    # T_old = Tvent
     T_old = 0
-    # for i, T in enumerate(build_sim.Tout):
-        # if T_old > Tvent and T <= Tvent:
+    stepsHalfDay = 12 * 60 * 60 / dt
+    iVentMin = stepsHalfDay
     for i, T in enumerate(Tout_minus_in):
-        if T_old > 0 and T <= 0:
+        if T_old > 0 and T <= 0 and i > iVentMin:
+            iVentMin = i + stepsHalfDay # Wait at least half a day before venting again
             hVent.append(build_sim.hours[i])
             iVent.append(i)
             if verbose:
@@ -302,8 +306,8 @@ def runMyBEM(
             if makePlots:
                 plt.plot(build_sim.hours, diff, label=n)
                 plt.scatter(hVent, diff[iVent])
-    outputs["ceilingMinusFloor"] = np.mean(delVent[-1])
-    outputs["outMinusFloor"] = np.mean(delOutFloor[-1])
+    outputs["ceilingMinusFloor"] = np.mean(delVent, axis = 0)
+    outputs["outMinusFloor"] = np.mean(delOutFloor, axis = 0)
     if verbose:
         display(f'Average "ceiling - floor" temperature difference at ventilation time: {outputs["ceilingMinusFloor"]}')
         display(f'Average "outdoor - floor" temperature difference at ventilation time: {outputs["outMinusFloor"]}')
@@ -327,7 +331,7 @@ def runMyBEM(
                     plt.plot(build_sim.hours, diff, label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[side])
                     plt.scatter(hVent, diff[iVent], color = colors[c])
                     c = (c + 1) % len(colors)
-    outputs["intWallMinusFloor"] = np.mean(delVent[-1])
+    outputs["intWallMinusFloor"] = np.mean(delVent, axis = 0)
     if verbose:
         display(f'Average "interior wall - floor" temperature difference at ventilation time: {outputs["intWallMinusFloor"]}')
 
@@ -349,7 +353,7 @@ def runMyBEM(
                 plt.plot(build_sim.hours, diff, label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[0])
                 plt.scatter(hVent, diff[iVent], color = colors[c])
                 c = (c + 1) % len(colors)
-    outputs["extWallMinusFloor"] = np.mean(delVent[-1])
+    outputs["extWallMinusFloor"] = np.mean(delVent, axis = 0)
     if verbose:
         display(f'Average "exterior wall - floor" temperature difference at ventilation time: {outputs["extWallMinusFloor"]}')
     

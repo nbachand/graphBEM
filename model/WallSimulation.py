@@ -2,16 +2,23 @@ import numpy as np
 import scipy.linalg as sp_linalg
 from model.utils import *
 
+def convectionDOE2(h_nat, V_10, R_f):
+    """
+    Calculate the convection coefficient using the DOE-2 method
+    """
+    alpha = np.mean([2.38, 2.86])
+    beta = np.mean([0.617, 0.89])
+    return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V_10**beta)**2)**0.5
+    
+
 class WallSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["X", "Y", "material_df"])
+        expected_kwards = set(["X", "Y", "material_df", "h", "alpha"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         # Constants
         self.Af = self.X * self.Y #fabric areas
-        self.h = WallSides(4, 4) #fabric convection coefficient
-        self.alpha = 0.7 #fabric absorptivity
         self.processMaterialDict(self.material_df)
         self.x = np.linspace(0, self.th, self.n + 2)
 
