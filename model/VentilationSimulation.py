@@ -1,9 +1,6 @@
 import numpy as np
 from scipy.integrate import trapz
 
-def convectionDOE2():
-    pass
-
 class VentilationSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)

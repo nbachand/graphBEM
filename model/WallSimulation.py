@@ -2,6 +2,9 @@ import numpy as np
 import scipy.linalg as sp_linalg
 from model.utils import *
 
+def convectionDOE2():
+    pass
+
 class WallSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
