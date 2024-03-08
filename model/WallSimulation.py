@@ -2,8 +2,14 @@ import numpy as np
 import scipy.linalg as sp_linalg
 from model.utils import *
 
-def convectionDOE2():
-    pass
+def convectionDOE2(h_nat, V_10, R_f):
+    """
+    Calculate the convection coefficient using the DOE-2 method
+    """
+    alpha = np.mean([2.38, 2.86])
+    beta = np.mean([0.617, 0.89])
+    return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V_10**beta)**2)**0.5
+    
 
 class WallSimulation:
     def __init__(self, **kwargs):
