@@ -13,7 +13,11 @@ def runMC(inputs: list, parallel = True):
         client = Client()
         display(client)
 
-        realizations = client.map(runMyBEM, *inputs, makePlots=False, verbose = False)
+        inputs_futures = []
+        for input in inputs:
+            inputs_futures.append(client.scatter(input))
+
+        realizations = client.map(runMyBEM, *inputs_futures, makePlots=False, verbose = False)
 
         realizationOutputs = client.gather(realizations)
 
