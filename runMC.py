@@ -1,6 +1,7 @@
 from dask.distributed import Client
 import random
 from myBuilding import runMyBEM
+from IPython.display import display, HTML
 
 
 def runMC(inputs: list, parallel = True):
@@ -12,7 +13,11 @@ def runMC(inputs: list, parallel = True):
         client = Client()
         display(client)
 
-        realizations = client.map(runMyBEM, *inputs, makePlots=False, verbose = False)
+        inputs_futures = []
+        for input in inputs:
+            inputs_futures.append(client.scatter(input))
+
+        realizations = client.map(runMyBEM, *inputs_futures, makePlots=False, verbose = False)
 
         realizationOutputs = client.gather(realizations)
 
@@ -23,3 +28,10 @@ def runMC(inputs: list, parallel = True):
             realizationOutputs = runMyBEM(*serial_inputs, makePlots=False, verbose = False)
     
     return realizationOutputs
+
+def main():
+    # Call your parallel function
+    runMC()
+
+if __name__ == "__main__":
+    main()
