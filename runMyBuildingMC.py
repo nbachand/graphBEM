@@ -49,7 +49,7 @@ def cleanMaterial(materialName, reverse = True):
 def main():
 
     mainStart = time.time()
-    N = 1000
+    N = 100
 
     # %% [markdown]
     #   # Specify Weather Data
@@ -123,7 +123,7 @@ def main():
     hInterior = []
     hExterior = []
     alphaRoof = []
-    runDays = 5
+    runDays = 3
     windSpeed = []
     wallRoughness = []
     if N == 1:
