@@ -48,7 +48,8 @@ def cleanMaterial(materialName, reverse = True):
 
 def main():
 
-    N = 2
+    mainStart = time.time()
+    N = 1000
 
     # %% [markdown]
     #   # Specify Weather Data
@@ -122,7 +123,7 @@ def main():
     hInterior = []
     hExterior = []
     alphaRoof = []
-    runDays = 1
+    runDays = 5
     windSpeed = []
     wallRoughness = []
     if N == 1:
@@ -162,6 +163,7 @@ def main():
     dfOutputs.columns = [f"day_{d+1}" for d in range(runDays)]
     dfOutputs = dfOutputs.unstack(1)
     dfOutputs.to_csv(f"./resultsMC/outputs_{timestr}.csv")
+    print(f"time elasped: {time.time() - mainStart}")
 
     # %%
 if __name__ == "__main__":
