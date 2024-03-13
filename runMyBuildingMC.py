@@ -46,10 +46,9 @@ def cleanMaterial(materialName, reverse = True):
                 material_df.append(materials.loc[material])
     return pd.DataFrame(material_df)
 
-def main():
+def main(N = 2, runDays = 1, writeResults = False):
 
     mainStart = time.time()
-    N = 100
 
     # %% [markdown]
     #   # Specify Weather Data
@@ -123,7 +122,6 @@ def main():
     hInterior = []
     hExterior = []
     alphaRoof = []
-    runDays = 3
     windSpeed = []
     wallRoughness = []
     if N == 1:
@@ -162,7 +160,8 @@ def main():
     dfOutputs = dfOutputs.stack().apply(pd.Series)
     dfOutputs.columns = [f"day_{d+1}" for d in range(runDays)]
     dfOutputs = dfOutputs.unstack(1)
-    dfOutputs.to_csv(f"./resultsMC/outputs_{timestr}.csv")
+    if writeResults:
+        dfOutputs.to_csv(f"./resultsMC/outputs_{timestr}.csv")
     print(f"time elasped: {time.time() - mainStart}")
 
     # %%
