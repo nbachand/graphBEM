@@ -39,6 +39,35 @@ $$
 T_{int}^{t+1} = T_{int}^{t} + \frac{\Delta t}{\rho V C_{p}} (E_{f}^{t} + E_{int}^{t} + E_{vt}^{t}) 
 $$
 
+## Temperature Boundary Conditions
+
+Temperature boundary conditions are also described with nodes. Boundary conditions do not solve for temperature, and instead take a temperature time series as input. Currently the scheme checks for the names of boundary nodes ('OD for outdoors and 'FL' for floor) and then uses the associated temperature time series instead of solving for temperature. If single temperature is given instead of a series, that temperature is used at all timesteps.
+
+All temperature boundary conditions technically interact with the adjacent surfaces through convection. However, adjusting the convection coefficient can change the behavior of the boundary condition. For instance, a very large convection coefficient effectively sets a constant temperature at the adjacent surfaces. I use this strategy to set an (effectively) constant boundary condition for the ground.
+
+### Outdoor Temperature
+The outdoor temperature can be set with any time series. I am using energy plus data because of the corresponding radiation data.
+
+### Floor Temperature
+There are many ways to choose floor temperatures: 
+
+## Temperature Boundary Conditions
+
+Temperature boundary conditions are also described with nodes. Boundary conditions do not solve for temperature, and instead take a temperature time series as input. Currently the scheme checks for the names of boundary nodes ('OD for outdoors and 'FL' for floor) and then uses the associated temperature time series instead of solving for temperature. If single temperature is given instead of a series, that temperature is used at all timesteps.
+
+All temperature boundary conditions technically interact with the adjacent surfaces through convection. However, adjusting the convection coefficient can change the behavior of the boundary condition. For instance, a very large convection coefficient effectively sets a constant temperature at the adjacent surfaces. I use this strategy to set an (effectively) constant boundary condition for the ground.
+
+### Outdoor Temperature
+The outdoor temperature can be set with any time series. I am using energy plus data because of the corresponding radiation data.
+
+### Floor Temperature
+There are many ways to choose floor temperatures: 
+
+![image](https://github.com/nbachand/graphBEM/assets/42705584/36239624-7c2a-4b4b-b5bf-7b774556ec47)
+([pdf](zotero://open-pdf/library/items/YBDPDVY7?page=5&annotation=JBJ9IRAR))  ([Gutiérrez González et al., 2022, p. 5](zotero://select/library/items/X6B88W33))
+
+I have been using a simplified temperature model where I take the average outdoor temperature during a given time period and subtract 0.5 to 3 C. However, I will likely move to using the EPW ground temperatures when available.
+([pdf](zotero://open-pdf/library/items/YBDPDVY7?page=5&annotation=JBJ9IRAR))  ([Gutiérrez González et al., 2022, p. 5](zotero://select/library/items/X6B88W33))
 
 ## Wall Modeling
 
@@ -69,6 +98,7 @@ T_i^{t+1}  = \frac{k_f \Delta t}{\rho_f C_f \Delta x ^ 2} (T_{i-1}^t - 2 T_i^t +
 $$
 
 ### Surface Energy Balance
+
 The energy balance at the surface of the wall is
 
 $$
