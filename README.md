@@ -66,7 +66,7 @@ There are many ways to choose floor temperatures:
 ![image](https://github.com/nbachand/graphBEM/assets/42705584/36239624-7c2a-4b4b-b5bf-7b774556ec47)
 ([pdf](zotero://open-pdf/library/items/YBDPDVY7?page=5&annotation=JBJ9IRAR))  ([Gutiérrez González et al., 2022, p. 5](zotero://select/library/items/X6B88W33))
 
-I have been using a simplified temperature model where I take the average outdoor temperature during a given time period and subtract 0.5 to 3 C. Gonzales et at. found that taking the monthly average indoor temperature and subtracting 1.5 C gave some of the best results. My method borrows from this, but avoids iteratively calculating the internal temperatures. There may be a better way...
+I have been using a simplified temperature model where I take the average outdoor temperature during a given time period and subtract 0.5 to 3 C. González et al. found that taking the monthly average indoor temperature and subtracting 1.5 C gave some of the best results. My method borrows from this, but avoids iteratively calculating the internal temperatures. There may be a better way...
 
 
 ## Wall Modeling
