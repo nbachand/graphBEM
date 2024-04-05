@@ -63,7 +63,7 @@ class Radiation:
                 if n != "FL":
                     self.G.add_edge(n, "FL")
 
-        # consturct radiation graph for the room (roof to floor, including via walls)
+        # assign properties to the radiation graph
         for n, d in self.G.nodes(data=True):
             if n == "sky":
                 epislon = 1 # This is not the true emmisivity (using W to specify sky intensity) but ignores reflected radiation
