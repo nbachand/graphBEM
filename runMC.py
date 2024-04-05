@@ -20,12 +20,14 @@ def runMC(inputs: list, parallel = True):
         realizations = client.map(runMyBEM, *inputs_futures, makePlots=False, verbose = False)
 
         realizationOutputs = client.gather(realizations)
+        print(realizationOutputs)
 
         client.shutdown()
     else:
+        realizationOutputs = []
         for i in range(len(inputs[0])):
             serial_inputs = [input[i] for input in inputs]
-            realizationOutputs = runMyBEM(*serial_inputs, makePlots=False, verbose = False)
+            realizationOutputs.append(runMyBEM(*serial_inputs, makePlots=True, verbose = True))
     
     return realizationOutputs
 
