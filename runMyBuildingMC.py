@@ -46,7 +46,7 @@ def cleanMaterial(materialName, reverse = True):
                 material_df.append(materials.loc[material])
     return pd.DataFrame(material_df)
 
-def main(N = 2, runDays = 1, writeResults = False):
+def main(N = 1, runDays = 2, writeResults = True):
 
     mainStart = time.time()
 
@@ -72,6 +72,16 @@ def main(N = 2, runDays = 1, writeResults = False):
 
     # %%
     data = a.dataframe[(a.dataframe["Month"]==8) & (a.dataframe["Day"] >= 1)]
+
+    # fig, ax = plt.subplots()
+    # ax.plot(data.index, data["Extraterrestrial Horizontal Radiation"], label = "Extraterrestrial Horizontal Radiation")
+    # ax.plot(data.index, data["Extraterrestrial Direct Normal Radiation"], label = "Extraterrestrial Direct Normal Radiation")
+    # ax.plot(data.index, data["Horizontal Infrared Radiation Intensity"], label = "Horizontal Infrared Radiation Intensity")
+    # ax.plot(data.index, data["Global Horizontal Radiation"], label = "Global Horizontal Radiation")
+    # ax.plot(data.index, data["Direct Normal Radiation"], label = "Direct Normal Radiation")
+    # ax.plot(data.index, data["Diffuse Horizontal Radiation"], label = "Diffuse Horizontal Radiation")
+    # ax.legend()
+
     data["Total Sky Radiation"] = data["Horizontal Infrared Radiation Intensity"] + data["Global Horizontal Radiation"]
     dt = 5
     data = data.resample(f"{dt}s").interpolate()
@@ -135,7 +145,7 @@ def main(N = 2, runDays = 1, writeResults = False):
         material_types_record.append(material_type)
         chosenMaterial.append(getConstructions(material_type))
         chosenData.append(data.iloc[startStep : startStep + runSteps])
-        floorTempAdjustment.append(random.uniform(-3.5, -1.5))
+        floorTempAdjustment.append(random.uniform(-3.5, -5))
         hInterior.append(random.uniform(1, 3))
         alphaRoof.append(random.uniform(0.6, 0.9))
         windSpeed.append(random.uniform(0, 6))
@@ -145,24 +155,26 @@ def main(N = 2, runDays = 1, writeResults = False):
 
     inputsMC = [chosenData, chosenMaterial, floorTempAdjustment, hInterior, hExterior, alphaRoof]
 
+    # parallel = False
     realizationOutputs = runMC(inputsMC, parallel = parallel)
 
     # %%
-    inputsMCdf = pd.DataFrame(inputsMC[2:], index = ["floorTempAdjustment", "hInterior", "hExterior", "alphaRoof"]).T
-    inputsMCdf["material_type"] = material_types_record
-    inputsMCdf["windSpeed"] = windSpeed
-    inputsMCdf["wallRoughness"] = wallRoughness
-    timestr = time.strftime("%Y%m%d-%H%M%S")
-    inputsMCdf.to_csv(f"./resultsMC/inputs_{timestr}.csv")
 
-    # %%
-    dfOutputs = pd.DataFrame(realizationOutputs)
-    dfOutputs = dfOutputs.stack().apply(pd.Series)
-    dfOutputs.columns = [f"day_{d+1}" for d in range(runDays)]
-    dfOutputs = dfOutputs.unstack(1)
     if writeResults:
+        inputsMCdf = pd.DataFrame(inputsMC[2:], index = ["floorTempAdjustment", "hInterior", "hExterior", "alphaRoof"]).T
+        inputsMCdf["material_type"] = material_types_record
+        inputsMCdf["windSpeed"] = windSpeed
+        inputsMCdf["wallRoughness"] = wallRoughness
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        inputsMCdf.to_csv(f"./resultsMC/inputs_{timestr}.csv")
+
+        dfOutputs = pd.DataFrame(realizationOutputs)
+        dfOutputs = dfOutputs.stack().apply(pd.Series)
+        days = dfOutputs.loc[(slice(None), 'dVent'), :].values.flatten()
+        dfOutputs.columns = [f"day_{int(d+1)}" for d in np.unique(days)]
+        dfOutputs = dfOutputs.unstack(1)
         dfOutputs.to_csv(f"./resultsMC/outputs_{timestr}.csv")
-    print(f"time elasped: {time.time() - mainStart}")
+        print(f"time elasped: {time.time() - mainStart}")
 
     # %%
 if __name__ == "__main__":
