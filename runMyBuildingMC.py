@@ -46,7 +46,7 @@ def cleanMaterial(materialName, reverse = True):
                 material_df.append(materials.loc[material])
     return pd.DataFrame(material_df)
 
-def main(N = 1, runDays = 2, writeResults = True):
+def main(N = 1, runDays = 2, writeResults = True, randomSeed = 666):
 
     mainStart = time.time()
 
@@ -134,6 +134,7 @@ def main(N = 1, runDays = 2, writeResults = True):
     alphaRoof = []
     windSpeed = []
     wallRoughness = []
+    random.seed(randomSeed)
     if N == 1:
         parallel = False
     else:
@@ -171,7 +172,9 @@ def main(N = 1, runDays = 2, writeResults = True):
         dfOutputs = pd.DataFrame(realizationOutputs)
         dfOutputs = dfOutputs.stack().apply(pd.Series)
         days = dfOutputs.loc[(slice(None), 'dVent'), :].values.flatten()
-        dfOutputs.columns = [f"day_{int(d+1)}" for d in np.unique(days)]
+        days = np.unique(days)
+        days = days[~np.isnan(days)] # remove nans
+        dfOutputs.columns = [f"day_{int(d+1)}" for d in days]
         dfOutputs = dfOutputs.unstack(1)
         dfOutputs.to_csv(f"./resultsMC/outputs_{timestr}.csv")
         print(f"time elasped: {time.time() - mainStart}")

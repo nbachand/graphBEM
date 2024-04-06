@@ -148,7 +148,7 @@ def runMyBEM(
     hVent = []
     iVent = []
     T_old = 0
-    coolingThreshold = 0# 273.15 + 24 # 24 C or 75 F
+    coolingThreshold = 273.15 + 24 # 24 C or 75 F
     stepsHalfDay = 12 * 60 * 60 / dt
     iVentMin = stepsHalfDay
     for i, T in enumerate(Tout_minus_in):
