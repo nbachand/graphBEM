@@ -96,6 +96,8 @@ def main(N = 1, runDays = 2, writeResults = True, randomSeed = 666):
 
     # %%
     daySteps = int(24 * 60 * 60 / dt)
+    hStartOffset = 8
+    startOffsetSteps = int(hStartOffset * 60 * 60 / dt)
     totalSteps, _ = data.shape
 
 
@@ -141,7 +143,7 @@ def main(N = 1, runDays = 2, writeResults = True, randomSeed = 666):
         parallel = True
     for i in range(N):
         runSteps = int(runDays * daySteps)
-        startStep = random.randrange(0, totalSteps-runSteps, daySteps)
+        startStep = random.randrange(startOffsetSteps, totalSteps-runSteps-startOffsetSteps, daySteps)
         material_type = random.choice(material_types)
         material_types_record.append(material_type)
         chosenMaterial.append(getConstructions(material_type))
