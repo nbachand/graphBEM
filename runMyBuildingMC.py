@@ -46,7 +46,7 @@ def cleanMaterial(materialName, reverse = True):
                 material_df.append(materials.loc[material])
     return pd.DataFrame(material_df)
 
-def main(N = 100, runDays = 7, writeResults = True, randomSeed = 666):
+def main(N = 100, runDays = 7, writeResults = True, randomSeed = 666, material_types = ["Light", "Medium", "Heavy"]):
 
     mainStart = time.time()
 
@@ -125,8 +125,6 @@ def main(N = 100, runDays = 7, writeResults = True, randomSeed = 666):
 
 
     # %%
-    material_types = ["Light", "Medium", "Heavy"]
-    realizations = []
     chosenData = []
     material_types_record = []
     chosenMaterial = []

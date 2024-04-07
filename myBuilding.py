@@ -9,6 +9,14 @@ import networkx as nx
 from epw import epw
 import plotly.express as px
 
+def tempPlotBasics():
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    plt.xticks(rotation=-45)
+    plt.xlabel('Time')
+    plt.ylabel('Temperature [K]')
+    plt.tight_layout()
+
+
 def runMyBEM(
         weather_data,
         materials,
@@ -32,21 +40,21 @@ def runMyBEM(
 
     # Plotting the weather data
     if makePlots:
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(10, 6))
 
         plt.subplot(2, 1, 1)
         plt.plot(times, Touts, label='Temperature (°K)')
         plt.title('Daily Temperature Variation')
         plt.xlabel('Time (seconds)')
         plt.ylabel('Temperature (°C)')
-        plt.legend()
+        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
         plt.subplot(2, 1, 2)
         plt.plot(times, rad, label='Radiation (W/m^2)', color='orange')
         plt.title('Daily Radiation Variation')
         plt.xlabel('Time (seconds)')
         plt.ylabel('Radiation (W/m^2)')
-        plt.legend()
+        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
         plt.tight_layout()
         plt.show()
@@ -135,7 +143,7 @@ def runMyBEM(
 
     Tints_avg = []
     if makePlots:
-        plt.figure()
+        plt.figure(figsize=(10, 6))
     for n, d in build_sim.bG.G.nodes(data=True):
         if n in interiorRooms:
             Tints_avg.append(d['Tints'])
@@ -169,16 +177,16 @@ def runMyBEM(
     #### General Plots
 
     if makePlots:
-        for t in hVent:
-            plt.axvline(t, linestyle = '-.', color = '.8')
+        for i in iVent:
+            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
         plt.plot(times.index.values, Tints_avg, label="Average Interior Temperature", color = 'k', linestyle = '--')
         plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
-        plt.legend()
+        tempPlotBasics()
         plt.title("Room Temperatures")
 
-        plt.figure()
-        for t in hVent:
-            plt.axvline(t, linestyle = '-.', color = '.8')
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
         c = 0
         for i, j, d, in build_sim.bG.G.edges(data=True):
             if d['nodes'].checkSides(i, False) in interiorRooms and d['nodes'].checkSides(j, False) in interiorRooms:
@@ -188,12 +196,12 @@ def runMyBEM(
                 plt.plot(times.index.values, d['T_profs'][-1, :], label=f'{i}-{j}-B', color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
         plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
-        plt.legend()
+        tempPlotBasics()
         plt.title("Interior Wall Suface Temperatures")
 
-        plt.figure()
-        for t in hVent:
-            plt.axvline(t, linestyle = '-.', color = '.8')
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
         c = 0
         for i, j, d, in build_sim.bG.G.edges(data=True):
             if d['nodes'].checkSides(i, False) == "OD" or d['nodes'].checkSides(j, False) == "OD":
@@ -201,12 +209,12 @@ def runMyBEM(
                 plt.plot(times.index.values, d['T_profs'][-1, :], label=f'{i}-{j}-B', color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
         plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
-        plt.legend()
+        tempPlotBasics()
         plt.title("Exterior Wall Suface Temperatures")
 
-        plt.figure()
-        for t in hVent:
-            plt.axvline(t, linestyle = '-.', color = '.8')
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
         c = 0
         for i, j, d, in build_sim.bG.G.edges(data=True):
             if d['nodes'].checkSides(i, False) == "RF" or d['nodes'].checkSides(j, False) == "RF":
@@ -214,12 +222,12 @@ def runMyBEM(
                 plt.plot(times.index.values, d['T_profs'][-1, :], label=f'{i}-{j}-B', color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
         plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
-        plt.legend()
+        tempPlotBasics()
         plt.title("Roof Suface Temperatures")
 
-        plt.figure()
-        for t in hVent:
-            plt.axvline(t, linestyle = '-.', color = '.8')
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
         c = 0
         for i, j, d, in build_sim.bG.G.edges(data=True):
             if d['nodes'].checkSides(i, False) == "FL" or d['nodes'].checkSides(j, False) == "FL":
@@ -227,14 +235,14 @@ def runMyBEM(
                 plt.plot(times.index.values, d['T_profs'][-1, :], label=f'{i}-{j}-B', color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
         plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
-        plt.legend()
+        tempPlotBasics()
         plt.title("Floor Suface Temperatures")
 
         fig, axs = plt.subplots(3, 1, figsize=(8, 18))
-        for t in hVent:
-            for i in range(3):
-                axs[i].axvline(t, linestyle = '-.', color = '.8')
-                axs[i].plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
+        for i in iVent:
+            for j in range(3):
+                axs[j].axvline(times.index.values[i], linestyle = '-.', color = '.8')
+                axs[j].plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         for i, j, d in build_sim.bG.G.edges(data=True):
             center = int(len(d['T_profs'][:, 0]) / 2)
             if d['nodes'].checkSides(i, False) in interiorRooms and d['nodes'].checkSides(j, False) in interiorRooms:
@@ -251,7 +259,7 @@ def runMyBEM(
                 label = "floor"
             axs[0].plot(times.index.values, d['T_profs'][0, :], color = 'k', linestyle = lt, label = label)
             axs[1].plot(times.index.values, d['T_profs'][center, :], color = 'k', linestyle = lt, label = label)
-            axs[2].plot(times.index.values, d['T_profs'][0, :], color = 'k', linestyle = lt, label = label)
+            axs[2].plot(times.index.values, d['T_profs'][-1, :], color = 'k', linestyle = lt, label = label)
             # plt.legend()
 
         # Get handles and labels
@@ -267,15 +275,13 @@ def runMyBEM(
         for i in range(3):
             axs[i].legend(unique_labels.values(), unique_labels.keys())
 
-        plt.tight_layout
         axs[0].set_title("front")
         axs[1].set_title("center")
-        axs[1].set_title("back")
-        plt.title("Wall Temperatures")
-
+        axs[2].set_title("back")
+        plt.tight_layout()
 
         #### Wall profiles
-        plt.figure()
+        plt.figure(figsize=(10, 6))
         h_profs = [4, 8, 12, 16, 20]
         # h_profs = [h + 48 for h in h_profs]
         wall = build_sim.bG.G.edges['DR', 'DR']['wall']
@@ -288,7 +294,7 @@ def runMyBEM(
         plt.ylabel('Temperature [K]')
         plt.show()
 
-        plt.figure()
+        plt.figure(figsize=(10, 6))
         wall = build_sim.bG.G.edges['DR', 'FL']['wall']
         T_profs = build_sim.bG.G.edges['DR', 'FL']['T_profs']
         for h in h_profs:
@@ -300,7 +306,7 @@ def runMyBEM(
         plt.ylabel('Temperature [K]')
         plt.show()
 
-        plt.figure()
+        plt.figure(figsize=(10, 6))
         wall = build_sim.bG.G.edges['DR', 'RF']['wall']
         T_profs = build_sim.bG.G.edges['DR', 'RF']['T_profs']
         for h in h_profs:
@@ -314,22 +320,22 @@ def runMyBEM(
 
 
     if makePlots:
-        plt.figure()
-        for t in hVent:
-            plt.axvline(t, linestyle = '-.', color = '.8')
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
         plt.plot(times.index.values, Tout_minus_in, label="Outdoor-Indoor temperature difference")
         plt.plot(times.index.values, np.zeros_like(times.index.values), label="Indoor temperature")
-        plt.scatter(hVent, np.zeros_like(hVent), label="Ventilation Times")
+        # plt.scatter(hVent, np.zeros_like(hVent), label="Ventilation Times")
 
     #### Temperature Differences
     if makePlots:
-        plt.figure()
-        for t in hVent:
-            plt.axvline(t, linestyle = '-.', color = '.8')
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
         plt.plot(times.index.values, Tout_minus_in, label="Outdoor-Indoor Temperature Difference", color = 'k', linestyle = '--')
-        for t in hVent:
-            plt.axvline(t, linestyle = '-.', color = '.8')
-        plt.legend()
+        for i in iVent:
+            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+        tempPlotBasics()
         plt.title("Ceiling - Floor; Temperature Difference")
     delVent = []
     delOutFloor = []
@@ -343,7 +349,7 @@ def runMyBEM(
             delOutFloor.append(Tout_floor_diff[iVent])
             if makePlots:
                 plt.plot(times.index.values, diff, label=n)
-                plt.scatter(hVent, diff[iVent])
+                # plt.scatter(hVent, diff[iVent])
     outputs["ceilingMinusFloor"] = np.mean(delVent, axis = 0)
     outputs["outMinusFloor"] = np.mean(delOutFloor, axis = 0)
     if verbose:
@@ -351,11 +357,11 @@ def runMyBEM(
         print(f'Average "outdoor - floor" temperature difference at ventilation time: {outputs["outMinusFloor"]}')
     
     if makePlots:
-        plt.figure()
-        for t in hVent:
-            plt.axvline(t, linestyle = '-.', color = '.8')
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
         plt.plot(times.index.values, Tout_minus_in, label="Outdoor-Indoor Temperature Difference", color = 'k', linestyle = '--')
-        plt.legend()
+        tempPlotBasics()
         plt.title("Interior Wall - Floor; Surface Temperatures")
         c = 0
     delVent = []
@@ -369,18 +375,18 @@ def runMyBEM(
                 delVent.append(diff[iVent])
                 if makePlots:   
                     plt.plot(times.index.values, diff, label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[side])
-                    plt.scatter(hVent, diff[iVent], color = colors[c])
+                    # plt.scatter(hVent, diff[iVent], color = colors[c])
                     c = (c + 1) % len(colors)
     outputs["intWallMinusFloor"] = np.mean(delVent, axis = 0)
     if verbose:
         print(f'Average "interior wall - floor" temperature difference at ventilation time: {outputs["intWallMinusFloor"]}')
 
     if makePlots:
-        plt.figure()
-        for t in hVent:
-            plt.axvline(t, linestyle = '-.', color = '.8')
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
         plt.plot(times.index.values, Tout_minus_in, label="Outdoor-Indoor Temperature Difference", color = 'k', linestyle = '--')
-        plt.legend()
+        tempPlotBasics()
         plt.title("Exterior Wall - Floor; Surface Temperatures")
         c = 0
     delVent = []
@@ -393,7 +399,7 @@ def runMyBEM(
             delVent.append(diff[iVent])
             if makePlots:
                 plt.plot(times.index.values, diff, label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[0])
-                plt.scatter(hVent, diff[iVent], color = colors[c])
+                # plt.scatter(hVent, diff[iVent], color = colors[c])
                 c = (c + 1) % len(colors)
     outputs["extWallMinusFloor"] = np.mean(delVent, axis = 0)
     if verbose:
