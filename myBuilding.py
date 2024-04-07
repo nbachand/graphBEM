@@ -149,12 +149,12 @@ def runMyBEM(
     iVent = []
     T_old = 0
     coolingThreshold = 273.15 + 24 # 24 C or 75 F
-    stepsHalfDay = 12 * 60 * 60 / dt
-    iVentMin = stepsHalfDay
+    stepsDay = 24 * 60 * 60 / dt
+    iVentMin = stepsDay / 4
     for i, T in enumerate(Tout_minus_in):
         if T_old > 0 and T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold:
-            iVentMin = i + stepsHalfDay # Wait at least half a day before venting again
-            hVent.append(times.index.values[i])
+            iVentMin = i + stepsDay / 2 # Wait at least half a day before venting again
+            hVent.append(build_sim.hours[i])
             iVent.append(i)
             if verbose:
                 print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
