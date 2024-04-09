@@ -15,7 +15,12 @@ def tempPlotBasics():
     plt.xlabel('Time')
     plt.ylabel('Temperature [K]')
     plt.tight_layout()
+    return
 
+def plotVentLines(t, allVent):
+    # if allVent == False:
+    plt.axvline(t, linestyle = '-.', color = '.8')
+    return
 
 def runMyBEM(
         weather_data,
@@ -24,6 +29,7 @@ def runMyBEM(
         hInterior,
         hExterior,
         alphaRoof,
+        allVent = True,
         verbose = False,
         makePlots = False):
     
@@ -161,12 +167,15 @@ def runMyBEM(
     iVentMin = stepsDay / 4
     for i, T in enumerate(Tout_minus_in):
         if T_old > 0 and T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold:
-            iVentMin = i + stepsDay / 2 # Wait at least half a day before venting again
+            if allVent == False:
+                iVentMin = i + stepsDay / 2 # Wait at least half a day before venting again
+            else:
+                iVentMin = i + stepsDay/24
             hVent.append(build_sim.hours[i])
             iVent.append(i)
-            if verbose:
+            if verbose and allVent == False:
                 print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
-        if Tints_avg[i] < coolingThreshold:
+        if Tints_avg[i] < coolingThreshold or allVent == True:
             T_old = 1 # waiting for indoor temperature to get to hot
         else:
             T_old = T
@@ -178,7 +187,7 @@ def runMyBEM(
 
     if makePlots:
         for i in iVent:
-            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+            plotVentLines(times.index.values[i], allVent)
         plt.plot(times.index.values, Tints_avg, label="Average Interior Temperature", color = 'k', linestyle = '--')
         plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
@@ -186,7 +195,7 @@ def runMyBEM(
 
         plt.figure(figsize=(10, 6))
         for i in iVent:
-            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+            plotVentLines(times.index.values[i], allVent)
         c = 0
         for i, j, d, in build_sim.bG.G.edges(data=True):
             if d['nodes'].checkSides(i, False) in interiorRooms and d['nodes'].checkSides(j, False) in interiorRooms:
@@ -201,7 +210,7 @@ def runMyBEM(
 
         plt.figure(figsize=(10, 6))
         for i in iVent:
-            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+            plotVentLines(times.index.values[i], allVent)
         c = 0
         for i, j, d, in build_sim.bG.G.edges(data=True):
             if d['nodes'].checkSides(i, False) == "OD" or d['nodes'].checkSides(j, False) == "OD":
@@ -214,7 +223,7 @@ def runMyBEM(
 
         plt.figure(figsize=(10, 6))
         for i in iVent:
-            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+            plotVentLines(times.index.values[i], allVent)
         c = 0
         for i, j, d, in build_sim.bG.G.edges(data=True):
             if d['nodes'].checkSides(i, False) == "RF" or d['nodes'].checkSides(j, False) == "RF":
@@ -227,7 +236,7 @@ def runMyBEM(
 
         plt.figure(figsize=(10, 6))
         for i in iVent:
-            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+            plotVentLines(times.index.values[i], allVent)
         c = 0
         for i, j, d, in build_sim.bG.G.edges(data=True):
             if d['nodes'].checkSides(i, False) == "FL" or d['nodes'].checkSides(j, False) == "FL":
@@ -241,8 +250,9 @@ def runMyBEM(
         fig, axs = plt.subplots(3, 1, figsize=(8, 18))
         for i in iVent:
             for j in range(3):
-                axs[j].axvline(times.index.values[i], linestyle = '-.', color = '.8')
-                axs[j].plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
+                if allVent == False:
+                    axs[j].axvline(times.index.values[i], linestyle = '-.', color = '.8')
+                    axs[j].plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         for i, j, d in build_sim.bG.G.edges(data=True):
             center = int(len(d['T_profs'][:, 0]) / 2)
             if d['nodes'].checkSides(i, False) in interiorRooms and d['nodes'].checkSides(j, False) in interiorRooms:
@@ -322,7 +332,7 @@ def runMyBEM(
     if makePlots:
         plt.figure(figsize=(10, 6))
         for i in iVent:
-            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+            plotVentLines(times.index.values[i], allVent)
         plt.plot(times.index.values, Tout_minus_in, label="Outdoor-Indoor temperature difference")
         plt.plot(times.index.values, np.zeros_like(times.index.values), label="Indoor temperature")
         # plt.scatter(hVent, np.zeros_like(hVent), label="Ventilation Times")
@@ -331,10 +341,10 @@ def runMyBEM(
     if makePlots:
         plt.figure(figsize=(10, 6))
         for i in iVent:
-            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+            plotVentLines(times.index.values[i], allVent)
         plt.plot(times.index.values, Tout_minus_in, label="Outdoor-Indoor Temperature Difference", color = 'k', linestyle = '--')
         for i in iVent:
-            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+            plotVentLines(times.index.values[i], allVent)
         tempPlotBasics()
         plt.title("Ceiling - Floor; Temperature Difference")
     delVent = []
@@ -359,7 +369,7 @@ def runMyBEM(
     if makePlots:
         plt.figure(figsize=(10, 6))
         for i in iVent:
-            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+            plotVentLines(times.index.values[i], allVent)
         plt.plot(times.index.values, Tout_minus_in, label="Outdoor-Indoor Temperature Difference", color = 'k', linestyle = '--')
         tempPlotBasics()
         plt.title("Interior Wall - Floor; Surface Temperatures")
@@ -384,7 +394,7 @@ def runMyBEM(
     if makePlots:
         plt.figure(figsize=(10, 6))
         for i in iVent:
-            plt.axvline(times.index.values[i], linestyle = '-.', color = '.8')
+            plotVentLines(times.index.values[i], allVent)
         plt.plot(times.index.values, Tout_minus_in, label="Outdoor-Indoor Temperature Difference", color = 'k', linestyle = '--')
         tempPlotBasics()
         plt.title("Exterior Wall - Floor; Surface Temperatures")
