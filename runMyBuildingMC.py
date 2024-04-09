@@ -172,9 +172,6 @@ def main(N = 100, runDays = 7, writeResults = True, randomSeed = 666, material_t
         dfOutputs = pd.DataFrame(realizationOutputs)
         dfOutputs = dfOutputs.stack().apply(pd.Series)
         days = dfOutputs.loc[(slice(None), 'dVent'), :].values.flatten()
-        days = np.unique(days)
-        days = days[~np.isnan(days)] # remove nans
-        dfOutputs.columns = [f"day_{int(d)}" for d in days]
         dfOutputs = dfOutputs.unstack(1)
         dfOutputs.to_csv(f"./resultsMC/outputs_{timestr}.csv")
         print(f"time elasped: {time.time() - mainStart}")
