@@ -161,27 +161,48 @@ def runMyBEM(
 
     hVent = []
     iVent = []
+    outputs["dVent"] = []
+    outputs["nVent"] = []
+    outputs["Tint"] = []
+    outputs["Tout"] = []
+    outputs["ToutMinusTint"] = []
+    outputs["maxToutVent"] = []
     T_old = 0
     coolingThreshold = 273.15 + 24 # 24 C or 75 F
     stepsDay = 24 * 60 * 60 / dt
     iVentMin = stepsDay / 4
+    n = 0 # tracking the nth ventilation time of the night
+    lastMaxTout = 0
     for i, T in enumerate(Tout_minus_in):
-        if T_old > 0 and T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold:
+        if times.index.hour[i] == 10:
+            lastMaxTout = 0
+        elif build_sim.Tout[i] > lastMaxTout:
+            lastMaxTout = build_sim.Tout[i]
+        if T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold and (T_old > 0 or allVent == True):
+            n += 1
+            if i > iVentMin + 1: # indicating this is not a continuing ventilation
+                n = 0
+                day = times.index.day[i] - times.index.day[0]
             if allVent == False:
                 iVentMin = i + stepsDay / 2 # Wait at least half a day before venting again
             else:
                 iVentMin = i + stepsDay/24
-            hVent.append(build_sim.hours[i])
+            hVent.append(times.index.hour[i])
             iVent.append(i)
+            outputs["dVent"].append(day)
+            outputs["nVent"].append(n)
+            outputs["Tint"].append(Tints_avg[i])
+            outputs["Tout"].append(build_sim.Tout[i])
+            outputs["ToutMinusTint"].append(T)
+            outputs["maxToutVent"].append(lastMaxTout)
             if verbose and allVent == False:
                 print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
-        if Tints_avg[i] < coolingThreshold or allVent == True:
+        if Tints_avg[i] < coolingThreshold:
             T_old = 1 # waiting for indoor temperature to get to hot
         else:
             T_old = T
 
     outputs["hVent"] = hVent
-    outputs["dVent"] = [int(h/24) for h in hVent]
 
     #### General Plots
 
