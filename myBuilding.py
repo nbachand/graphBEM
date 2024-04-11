@@ -49,16 +49,16 @@ def runMyBEM(
         plt.figure(figsize=(10, 6))
 
         plt.subplot(2, 1, 1)
-        plt.plot(times, Touts, label='Temperature (°K)')
+        plt.plot(times.index.values, Touts, label='Temperature (°K)')
         plt.title('Daily Temperature Variation')
-        plt.xlabel('Time (seconds)')
+        plt.xlabel('Time')
         plt.ylabel('Temperature (°C)')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
         plt.subplot(2, 1, 2)
-        plt.plot(times, rad, label='Radiation (W/m^2)', color='orange')
+        plt.plot(times.index.values, rad, label='Radiation (W/m^2)', color='orange')
         plt.title('Daily Radiation Variation')
-        plt.xlabel('Time (seconds)')
+        plt.xlabel('Time')
         plt.ylabel('Radiation (W/m^2)')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
@@ -174,7 +174,7 @@ def runMyBEM(
     n = 0 # tracking the nth ventilation time of the night
     lastMaxTout = 0
     for i, T in enumerate(Tout_minus_in):
-        if times.index.hour[i] == 10:
+        if times.index.hour[i] == 0:
             lastMaxTout = 0
         elif build_sim.Tout[i] > lastMaxTout:
             lastMaxTout = build_sim.Tout[i]
@@ -183,6 +183,7 @@ def runMyBEM(
             if i > iVentMin + 1: # indicating this is not a continuing ventilation
                 n = 0
                 day = times.index.day[i] - times.index.day[0]
+                lastMaxToutVent = lastMaxTout #making sure this is not reset during the building ventilation period
             if allVent == False:
                 iVentMin = i + stepsDay / 2 # Wait at least half a day before venting again
             else:
@@ -194,7 +195,7 @@ def runMyBEM(
             outputs["Tint"].append(Tints_avg[i])
             outputs["Tout"].append(build_sim.Tout[i])
             outputs["ToutMinusTint"].append(T)
-            outputs["maxToutVent"].append(lastMaxTout)
+            outputs["maxToutVent"].append(lastMaxToutVent)
             if verbose and allVent == False:
                 print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
         if Tints_avg[i] < coolingThreshold:
