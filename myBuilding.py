@@ -29,7 +29,10 @@ def runMyBEM(
         hInterior,
         hExterior,
         alphaRoof,
-        allVent = True,
+        allVent = False,
+        startVentHour = 16,
+        otherVentHours = [23],
+        coolingThreshold = 273.15 + 24, # 24 C or 75 F
         verbose = False,
         makePlots = False):
     
@@ -103,7 +106,7 @@ def runMyBEM(
     wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "alpha" : 0.7}
 
     room_kwargs = {
-        "T0": Touts[0],
+        "T0": np.mean(Touts), #Touts[0],
         "V" : 4**2 * 3, #volume of air
         "Eint" : 0 #internal heat generation
     }
@@ -163,35 +166,37 @@ def runMyBEM(
     iVent = []
     outputs["dVent"] = []
     outputs["nVent"] = []
+    outputs["hVent"] = []
     outputs["Tint"] = []
     outputs["Tout"] = []
     outputs["ToutMinusTint"] = []
     outputs["maxToutVent"] = []
     T_old = 0
-    coolingThreshold = 273.15 + 24 # 24 C or 75 F
     stepsDay = 24 * 60 * 60 / dt
     iVentMin = stepsDay / 4
     n = 0 # tracking the nth ventilation time of the night
     lastMaxTout = 0
     for i, T in enumerate(Tout_minus_in):
-        if times.index.hour[i] == 0:
+        h = times.index.hour[i]
+        if h == 0:
             lastMaxTout = 0
         elif build_sim.Tout[i] > lastMaxTout:
             lastMaxTout = build_sim.Tout[i]
-        if T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold and (T_old > 0 or allVent == True):
+        if T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold and h > startVentHour and (T_old > 0 or allVent == True or h in otherVentHours):
             n += 1
             if i > iVentMin + 1: # indicating this is not a continuing ventilation
                 n = 0
                 day = times.index.day[i] - times.index.day[0]
                 lastMaxToutVent = lastMaxTout #making sure this is not reset during the building ventilation period
-            if allVent == False:
+            if allVent == True or len(otherVentHours) > 0:
+                iVentMin = i + stepsDay / 24
+            else: 
                 iVentMin = i + stepsDay / 2 # Wait at least half a day before venting again
-            else:
-                iVentMin = i + stepsDay/24
             hVent.append(times.index.hour[i])
             iVent.append(i)
             outputs["dVent"].append(day)
             outputs["nVent"].append(n)
+            outputs["hVent"].append(h)
             outputs["Tint"].append(Tints_avg[i])
             outputs["Tout"].append(build_sim.Tout[i])
             outputs["ToutMinusTint"].append(T)
