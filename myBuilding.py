@@ -183,11 +183,11 @@ def runMyBEM(
         elif build_sim.Tout[i] > lastMaxTout:
             lastMaxTout = build_sim.Tout[i]
         if T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold and h > startVentHour and (T_old > 0 or allVent == True or h in otherVentHours):
-            n += 1
             if i > iVentMin + 1: # indicating this is not a continuing ventilation
-                n = 0
                 day = times.index.day[i] - times.index.day[0]
                 lastMaxToutVent = lastMaxTout #making sure this is not reset during the building ventilation period
+                if h not in otherVentHours:
+                    n = 0
             if allVent == True or len(otherVentHours) > 0:
                 iVentMin = i + stepsDay / 24
             else: 
@@ -201,6 +201,7 @@ def runMyBEM(
             outputs["Tout"].append(build_sim.Tout[i])
             outputs["ToutMinusTint"].append(T)
             outputs["maxToutVent"].append(lastMaxToutVent)
+            n += 1
             if verbose and allVent == False:
                 print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
         if Tints_avg[i] < coolingThreshold:
