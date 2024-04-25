@@ -10,6 +10,30 @@ def convectionDOE2(h_nat, V_10, R_f):
     beta = np.mean([0.617, 0.89])
     return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V_10**beta)**2)**0.5
     
+def processMaterials(material_df):
+    """
+    Process pandas df of materials that make up wall
+    """
+
+    material_df["depth"] = material_df["Thickness"].cumsum()
+    th = np.sum(material_df["Thickness"])
+    n = 9
+    delx = th / (n + 1) # set delx to evenly divide the thickness
+    for index, row in material_df.iterrows():
+        if row["key"] == "Material:AirGap":
+            n += 1 # add node in air gap
+            th += delx # recompute thickness
+            material_df.loc[index, "Thickness"] = delx # just place one point in the air gap
+            material_df.loc[index, "Conductivity"] = material_df.loc[index, "Thickness"] / material_df.loc[index, "Thermal_Resistance"] # convert R value
+            material_df.loc[index, "Density"] = 12 # large enough for reasonable time step
+            material_df.loc[index, "Specific_Heat"] = 1005 # specific heat of air
+        else:
+            material_df.loc[index, "Thermal_Resistance"] =  material_df.loc[index, "Thickness"] / material_df.loc[index, "Conductivity"] # convert to R value for reference
+    material_df["depth"] = material_df["Thickness"].cumsum()
+    # print(material_df)
+
+    return material_df, th, n, delx
+
 
 class WallSimulation:
     def __init__(self, **kwargs):
@@ -23,25 +47,7 @@ class WallSimulation:
         self.x = np.linspace(0, self.th, self.n + 2)
 
     def processMaterialDict(self, material_df):
-        """
-        Process pandas df of materials that make up wall
-        """
-
-        material_df["depth"] = material_df["Thickness"].cumsum()
-        self.th = np.sum(material_df["Thickness"])
-        self.n = 9
-        self.delx = self.th / (self.n + 1) # set delx to evenly divide the thickness
-        for index, row in material_df.iterrows():
-            if row["key"] == "Material:AirGap":
-                self.n += 1 # add node in air gap
-                self.th += self.delx # recompute thickness
-                material_df.loc[index, "Thickness"] = self.delx # just place one point in the air gap
-                material_df.loc[index, "Conductivity"] = material_df.loc[index, "Thickness"] / material_df.loc[index, "Thermal_Resistance"] # convert R value
-                material_df.loc[index, "Density"] = 12 # large enough for reasonable time step
-                material_df.loc[index, "Specific_Heat"] = 1005 # specific heat of air
-        material_df["depth"] = material_df["Thickness"].cumsum()
-        # print(material_df)
-
+        material_df, self.th, self.n, self.delx = processMaterials(material_df)
         self.kfs = np.zeros(self.n) #= 2300 #density of fabric
         self.rhofs = np.zeros(self.n) #= 750 #specific heat capacity of fabric
         self.Cfs = np.zeros(self.n) #= 0.8 #thermal conductivity of fabric
@@ -53,7 +59,6 @@ class WallSimulation:
             self.kfs[i] = material["Conductivity"]
             self.rhofs[i] = material["Density"]
             self.Cfs[i] = material["Specific_Heat"]
-
 
     def initialize(self, delt, TfF, TfB, verbose = False):
         # Scaling factors
