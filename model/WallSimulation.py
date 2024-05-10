@@ -10,16 +10,16 @@ def convectionDOE2(h_nat, V_10, R_f):
     beta = np.mean([0.617, 0.89])
     return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V_10**beta)**2)**0.5
     
-def processMaterials(material_df):
+def processMaterials(material_df, n = 9):
     """
     Process pandas df of materials that make up wall
     """
 
-    material_df["depth"] = material_df["Thickness"].cumsum()
     th = np.sum(material_df["Thickness"])
-    n = 9
     delx = th / (n + 1) # set delx to evenly divide the thickness
-    for index, row in material_df.iterrows():
+    material_df["n"] = None
+    material_df.reset_index(drop = False, inplace = True)
+    for i, (index, row) in enumerate(material_df.iterrows()):
         if row["key"] == "Material:AirGap":
             n += 1 # add node in air gap
             th += delx # recompute thickness
@@ -27,12 +27,20 @@ def processMaterials(material_df):
             material_df.loc[index, "Conductivity"] = material_df.loc[index, "Thickness"] / material_df.loc[index, "Thermal_Resistance"] # convert R value
             material_df.loc[index, "Density"] = 12 # large enough for reasonable time step
             material_df.loc[index, "Specific_Heat"] = 1005 # specific heat of air
-        else:
+            material_df.loc[index, "n"] = 1
+        else: # make sure material thicknesses align with spacial discretization and adjust properties accordingly
+            nMat = max([1, round(material_df.loc[index, "Thickness"] / delx)]) # make sure n is at least 1
+            material_df.loc[index, "n"] = nMat
+            new_thickness = nMat * delx
+            scaling_factor = material_df.loc[index, "Thickness"] / new_thickness
+            material_df.loc[index, "Conductivity"] = material_df.loc[index, "Conductivity"] * scaling_factor
+            material_df.loc[index, "Specific_Heat"] = material_df.loc[index, "Specific_Heat"] * scaling_factor
+            material_df.loc[index, "Thickness"] = new_thickness
             material_df.loc[index, "Thermal_Resistance"] =  material_df.loc[index, "Thickness"] / material_df.loc[index, "Conductivity"] # convert to R value for reference
+    material_df.set_index("index", inplace = True)
     material_df["depth"] = material_df["Thickness"].cumsum()
-    # print(material_df)
 
-    return material_df, th, n, delx
+    return material_df
 
 
 class WallSimulation:
@@ -47,7 +55,10 @@ class WallSimulation:
         self.x = np.linspace(0, self.th, self.n + 2)
 
     def processMaterialDict(self, material_df):
-        material_df, self.th, self.n, self.delx = processMaterials(material_df)
+        material_df = processMaterials(material_df)
+        self.n  = int(material_df["n"].sum())
+        self.th = np.sum(material_df["Thickness"])
+        self.delx = self.th / (self.n + 1) # set delx to evenly divide the thickness
         self.kfs = np.zeros(self.n) #= 2300 #density of fabric
         self.rhofs = np.zeros(self.n) #= 750 #specific heat capacity of fabric
         self.Cfs = np.zeros(self.n) #= 0.8 #thermal conductivity of fabric
@@ -65,6 +76,11 @@ class WallSimulation:
         self.lambda_vals = (delt / self.delx**2) * self.kfs / (self.rhofs * self.Cfs)
         if verbose:
             print(f"maximum time step: {np.min(delt/self.lambda_vals)}")
+        # create error to catch timestep that is too large
+        try:
+            assert np.min(delt/self.lambda_vals) > delt
+        except:
+            raise ValueError("Time step too large for stability")
         self.lambda_bound = WallSides()
         self.lambda_bound.front = self.kfs[0] / (self.h.front * self.delx)
         self.lambda_bound.back = self.kfs[-1] / (self.h.back * self.delx)
