@@ -38,9 +38,18 @@ def runMyBEM(
     
     outputs = {}
     wallMaterial = materials["wall"]
-    partitionMaterial = materials["partition"]
+    partitionMaterial =  materials["partition"]
     roofMaterial = materials["roof"]
     floorMaterial = materials["floor"]
+    if verbose:
+        print("floor material:")
+        print(floorMaterial)
+        print("wall material:")
+        print(wallMaterial)
+        print("partition material:")
+        print(partitionMaterial)
+        print("roof material:")
+        print(roofMaterial)
     times = weather_data.index.to_series().apply(lambda x: x.timestamp())
     times -= times.iloc[0]
     dt = times.iloc[1]
@@ -106,7 +115,7 @@ def runMyBEM(
     wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "alpha" : 0.7}
 
     room_kwargs = {
-        "T0": np.mean(Touts), #Touts[0],
+        "T0": Touts[0], #np.mean(Touts), #Touts[0],
         "V" : 4**2 * 3, #volume of air
         "Eint" : 0 #internal heat generation
     }
@@ -145,7 +154,7 @@ def runMyBEM(
         bG.G.nodes[r]["room_kwargs"]["V"] *= 2
 
     build_sim = bs.BuildingSimulation(**sim_kwargs)
-    build_sim.initialize(bG)
+    build_sim.initialize(bG, verbose=verbose)
     build_sim.run()
 
     #### Ventilation Times:
