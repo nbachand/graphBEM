@@ -52,7 +52,7 @@ class BuildingSimulation():
                 w.h.front = 1e6
             elif d["nodes"].back == "FL":
                 w.h.back = 1e6
-            w.initialize(self.delt, Tff, Tfb) #initialize wall
+            w.initialize(self.delt, Tff, Tfb, verbose=verbose) #initialize wall
 
             T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
             T_profs[:, 0] = w.getWallProfile(Tff, Tfb) # store initial temperature profile
