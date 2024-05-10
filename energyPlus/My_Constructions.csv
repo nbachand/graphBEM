@@ -1,0 +1,5 @@
+Name,key,Outside_Layer,Layer_2,Layer_3,Layer_4,Layer_5
+My Exterior Wall,Construction,Plywood (Douglas Fir) - 12.7mm,I02 50mm insulation board,F04 Wall air space resistance,G01 16mm gypsum board
+My Partitions,Construction,G01 16mm gypsum board,F04 Wall air space resistance,G01 16mm gypsum board
+My Roof/Ceiling,Construction,Plywood (Douglas Fir) - 12.7mm,F05 Ceiling air space resistance,I05 154mm batt insulation,G01 16mm gypsum board
+My Floor,Construction,Plywood (Douglas Fir) - 12.7mm,I05 154mm batt insulation,F05 Ceiling air space resistance,M15 200mm heavyweight concrete
