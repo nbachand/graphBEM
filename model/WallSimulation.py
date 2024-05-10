@@ -17,21 +17,22 @@ def processMaterials(material_df, n = 9):
 
     th = np.sum(material_df["Thickness"])
     delx = th / (n + 1) # set delx to evenly divide the thickness
+    nthick = th / n
     material_df["n"] = None
     material_df.reset_index(drop = False, inplace = True)
     for i, (index, row) in enumerate(material_df.iterrows()):
         if row["key"] == "Material:AirGap":
             n += 1 # add node in air gap
-            th += delx # recompute thickness
-            material_df.loc[index, "Thickness"] = delx # just place one point in the air gap
+            th += nthick # recompute thickness
+            material_df.loc[index, "Thickness"] = nthick # just place one point in the air gap
             material_df.loc[index, "Conductivity"] = material_df.loc[index, "Thickness"] / material_df.loc[index, "Thermal_Resistance"] # convert R value
             material_df.loc[index, "Density"] = 12 # large enough for reasonable time step
             material_df.loc[index, "Specific_Heat"] = 1005 # specific heat of air
             material_df.loc[index, "n"] = 1
         else: # make sure material thicknesses align with spacial discretization and adjust properties accordingly
-            nMat = max([1, round(material_df.loc[index, "Thickness"] / delx)]) # make sure n is at least 1
+            nMat = max([1, round(material_df.loc[index, "Thickness"] / nthick)]) # make sure n is at least 1
             material_df.loc[index, "n"] = nMat
-            new_thickness = nMat * delx
+            new_thickness = nMat * nthick
             scaling_factor = material_df.loc[index, "Thickness"] / new_thickness
             material_df.loc[index, "Conductivity"] = material_df.loc[index, "Conductivity"] * scaling_factor
             material_df.loc[index, "Specific_Heat"] = material_df.loc[index, "Specific_Heat"] * scaling_factor
