@@ -158,7 +158,7 @@ def main(N = 100, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
     # ax.legend()
 
     data["Total Sky Radiation"] = data["Horizontal Infrared Radiation Intensity"] + data["Global Horizontal Radiation"]
-    dt = 5
+    dt = 4
     data = data.resample(f"{dt}s").interpolate()
     # fig = px.line(data, x = data.index, y = [
     #     "Total Sky Radiation",

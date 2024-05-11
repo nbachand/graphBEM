@@ -21,7 +21,7 @@ class BuildingSimulation():
         self.N = len(self.times)
         self.Tout = getEquivalentTimeSeries(self.Tout, self.times)
         self.radG = getEquivalentTimeSeries(self.radG, self.times)
-        self.radDamping = 0 #self.delt / (1 + self.delt)# damping factor for radiation
+        self.radDamping = self.delt / (1 + self.delt)# 0 damping factor for radiation
 
     def initialize(self, bG:bg.BuildingGraph, verbose = False):
         self.bG = bG
