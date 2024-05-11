@@ -115,7 +115,7 @@ def runMyBEM(
     wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "alpha" : 0.7}
 
     room_kwargs = {
-        "T0": Touts[0], #np.mean(Touts), #Touts[0],
+        "T0": np.mean(Touts), #Touts[0],
         "V" : 4**2 * 3, #volume of air
         "Eint" : 0 #internal heat generation
     }
@@ -270,6 +270,22 @@ def runMyBEM(
         plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.title("Roof Suface Temperatures")
+
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plotVentLines(times.index.values[i], allVent)
+        c = 0
+        for i, j, d, in build_sim.bG.G.edges(data=True):
+            if d['nodes'].checkSides(i, False) == "RF" or d['nodes'].checkSides(j, False) == "RF":
+                plt.plot(times.index.values, d['radECalc'].back, label=f'{i}-{j}-C', color = colors[c], linestyle = linetypes[0])
+                plt.plot(times.index.values, d['radEApplied'].back, label=f'{i}-{j}-A', color = colors[c], linestyle = linetypes[1])
+                plt.plot(times.index.values, d['radECalc'].front, color = colors[c], linestyle = linetypes[0])
+                plt.plot(times.index.values, d['radEApplied'].front, color = colors[c], linestyle = linetypes[1])
+                c = (c + 1) % len(colors)
+        plt.plot(times.index.values, build_sim.radG, label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
+        tempPlotBasics()
+        plt.ylabel('Energy Flux [W/m^2]')
+        plt.title("Roof Radiative FLuxes")
 
         plt.figure(figsize=(10, 6))
         for i in iVent:
