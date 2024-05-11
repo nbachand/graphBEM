@@ -184,8 +184,8 @@ def main(N = 100, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
     #   ## Medium Wall
 
     # %%
-    nWallNodes = 9
     materials = getConstructions("My", constructionFile = "energyPlus/My_Constructions.csv")
+    # materials = getConstructions("Light", constructionFile = "energyPlus/ASHRAE_2005_HOF_Constructions.csv")
 
     # plt.figure()
     # for i, material in enumerate([wallMaterial, partitionMaterial, roofMaterial, floorMaterial]):
