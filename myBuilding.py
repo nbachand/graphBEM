@@ -285,7 +285,7 @@ def runMyBEM(
         plt.plot(times.index.values, build_sim.radG, label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.ylabel('Energy Flux [W/m^2]')
-        plt.title("Roof Radiative FLuxes")
+        plt.title("Roof Radiative Fluxes")
 
         plt.figure(figsize=(10, 6))
         for i in iVent:

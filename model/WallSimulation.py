@@ -16,7 +16,7 @@ def processMaterials(material_df, n = 9):
     """
 
     th = np.sum(material_df["Thickness"])
-    delx = th / (n + 1) # set delx to evenly divide the thickness
+    # delx = th / (n + 1) # set delx to evenly divide the thickness
     nthick = th / n
     material_df["n"] = None
     material_df.reset_index(drop = False, inplace = True)
