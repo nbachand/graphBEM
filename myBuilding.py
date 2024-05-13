@@ -150,8 +150,8 @@ def runMyBEM(
         "vent_kwargs": vent_kwargs,
         "rad_kwargs": {"solveType": None},
         })
-    # bG.updateNodes({"rad_kwargs": rad_kwargs_RF}, nodes=["RF"])
-    # bG.updateNodes({"rad_kwargs": rad_kwargs_FL}, nodes=["SS", "DR", "CV", "CR"])
+    bG.updateNodes({"rad_kwargs": rad_kwargs_RF}, nodes=["RF"])
+    bG.updateNodes({"rad_kwargs": rad_kwargs_FL}, nodes=["SS", "DR", "CV", "CR"])
 
     for r in ["CR", "DR"]:
         bG.G.nodes[r]["room_kwargs"]["V"] *= 2
