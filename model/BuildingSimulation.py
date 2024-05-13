@@ -21,7 +21,7 @@ class BuildingSimulation():
         self.N = len(self.times)
         self.Tout = getEquivalentTimeSeries(self.Tout, self.times)
         self.radG = getEquivalentTimeSeries(self.radG, self.times)
-        self.radDamping = 0 #self.delt / (1 + self.delt)# damping factor for radiation
+        self.radDamping =  self.delt / (1 + self.delt)# 0 damping factor for radiation
 
     def initialize(self, bG:bg.BuildingGraph, verbose = False):
         self.bG = bG
@@ -44,6 +44,7 @@ class BuildingSimulation():
                       "Ef": 0,
                       })
         for i, j, d in self.bG.G.edges(data=True):
+            d["wall_kwargs"]["delt"] = self.delt
             w = ws.WallSimulation(**d["wall_kwargs"]) # instantiate wall
             Tff = self.bG.G.nodes[d["nodes"].front]["room"].Tint #set wall front fabric temp    
             Tfb = self.bG.G.nodes[d["nodes"].back]["room"].Tint # set wall back fabric temp
@@ -52,7 +53,7 @@ class BuildingSimulation():
                 w.h.front = 1e6
             elif d["nodes"].back == "FL":
                 w.h.back = 1e6
-            w.initialize(self.delt, Tff, Tfb) #initialize wall
+            w.initialize(self.delt, Tff, Tfb, verbose=verbose) #initialize wall
 
             T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
             T_profs[:, 0] = w.getWallProfile(Tff, Tfb) # store initial temperature profile

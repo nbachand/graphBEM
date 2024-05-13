@@ -2,6 +2,7 @@ import numpy as np
 import scipy as sp
 from matplotlib import pyplot as plt
 from model import BuildingSimulation as bs, BuildingGraph as bg
+from model.WallSimulation import processMaterials
 from model.utils import *
 import matplotlib.colors as mcolors
 import seaborn as sns
@@ -38,9 +39,20 @@ def runMyBEM(
     
     outputs = {}
     wallMaterial = materials["wall"]
-    partitionMaterial = materials["partition"]
+    partitionMaterial =  materials["partition"]
     roofMaterial = materials["roof"]
     floorMaterial = materials["floor"]
+    n = 9
+    nFloor = 19
+    if verbose:
+        print("floor material:")
+        print(processMaterials(floorMaterial.copy(), nFloor))
+        print("wall material:")
+        print(processMaterials(wallMaterial.copy(), n))
+        print("partition material:")
+        print(processMaterials(partitionMaterial.copy(), n))
+        print("roof material:")
+        print(processMaterials(roofMaterial.copy(), n))
     times = weather_data.index.to_series().apply(lambda x: x.timestamp())
     times -= times.iloc[0]
     dt = times.iloc[1]
@@ -100,10 +112,10 @@ def runMyBEM(
         "radG": rad,
         "Tfloor": np.mean(Touts) + floorTempAdjustment,
     }
-    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "alpha" : 0.7}
-    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior), "alpha" : 0.7}
-    wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, hExterior), "alpha" : alphaRoof}
-    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "alpha" : 0.7}
+    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "alpha" : 0.7, "n": n}
+    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior), "alpha" : 0.7, "n": n}
+    wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, hExterior), "alpha" : alphaRoof, "n": n}
+    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "alpha" : 0.7, "n": nFloor}
 
     room_kwargs = {
         "T0": np.mean(Touts), #Touts[0],
@@ -145,7 +157,7 @@ def runMyBEM(
         bG.G.nodes[r]["room_kwargs"]["V"] *= 2
 
     build_sim = bs.BuildingSimulation(**sim_kwargs)
-    build_sim.initialize(bG)
+    build_sim.initialize(bG, verbose=verbose)
     build_sim.run()
 
     #### Ventilation Times:
@@ -261,6 +273,22 @@ def runMyBEM(
         plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.title("Roof Suface Temperatures")
+
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plotVentLines(times.index.values[i], allVent)
+        c = 0
+        for i, j, d, in build_sim.bG.G.edges(data=True):
+            if d['nodes'].checkSides(i, False) == "RF" or d['nodes'].checkSides(j, False) == "RF":
+                plt.plot(times.index.values, d['radECalc'].back, label=f'{i}-{j}-C', color = colors[c], linestyle = linetypes[0])
+                plt.plot(times.index.values, d['radEApplied'].back, label=f'{i}-{j}-A', color = colors[c], linestyle = linetypes[1])
+                plt.plot(times.index.values, d['radECalc'].front, color = colors[c], linestyle = linetypes[0])
+                plt.plot(times.index.values, d['radEApplied'].front, color = colors[c], linestyle = linetypes[1])
+                c = (c + 1) % len(colors)
+        plt.plot(times.index.values, build_sim.radG, label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
+        tempPlotBasics()
+        plt.ylabel('Energy Flux [W/m^2]')
+        plt.title("Roof Radiative Fluxes")
 
         plt.figure(figsize=(10, 6))
         for i in iVent:
