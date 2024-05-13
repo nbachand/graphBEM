@@ -51,7 +51,7 @@ def processMaterials(material_df, n, dt = None):
 class WallSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["X", "Y", "material_df", "h", "alpha", "n", "delt"])
+        expected_kwards = set(["X", "Y", "material_df", "h", "absorptivity", "n", "delt"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         # Constants
