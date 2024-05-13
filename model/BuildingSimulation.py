@@ -44,6 +44,7 @@ class BuildingSimulation():
                       "Ef": 0,
                       })
         for i, j, d in self.bG.G.edges(data=True):
+            d["wall_kwargs"]["delt"] = self.delt
             w = ws.WallSimulation(**d["wall_kwargs"]) # instantiate wall
             Tff = self.bG.G.nodes[d["nodes"].front]["room"].Tint #set wall front fabric temp    
             Tfb = self.bG.G.nodes[d["nodes"].back]["room"].Tint # set wall back fabric temp
