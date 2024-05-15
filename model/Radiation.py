@@ -66,11 +66,12 @@ class Radiation:
         # assign properties to the radiation graph
         for n, d in self.G.nodes(data=True):
             if n == "sky":
-                epislon = 1 # This is not the true emmisivity (using W to specify sky intensity) but ignores reflected radiation
+                alpha = 1 # This is not the true absorptivity (using W to specify sky intensity) but ignores reflected radiation
                 d["A"] = 1 # doesn't matter sice epsilon = 1
+                d["alpha_over_epsilon"] = 1
             else:
                 wall = self.roomNode[n]["wall"]
-                epislon = wall.alpha # opaque, diffuse, gray surface
+                alpha = wall.absorptivity # opaque, diffuse, gray surface
                 d["X"] = wall.X # dimension used in view factor  
                 d["Y"] = wall.Y # dimension used in view factor
                 d["A"] = d["X"] * d["Y"] * self.roomNode[n]["weight"] # true area
@@ -78,7 +79,11 @@ class Radiation:
                 if d["T_index"] == 999:
                     d["T_index"] = 0 # arbitrary for partition walls which should be symetrical
                     d["A"] *= 2
-            d["boundaryResistance"] = (1 - epislon) / (epislon * d["A"])
+                if self.solveType == "sky":
+                    d["epsilon_over_alpha"] = 0.9 / alpha #radiation from roof is emmitted to sky with emissivity of 0.9 (different than to other surfaces do to nature of atmospheric abosrption)
+                else:
+                    d["epsilon_over_alpha"] = 1
+            d["boundaryResistance"] = (1 - alpha) / (alpha * d["A"])
 
         for i, j, d in self.G.edges(data=True):
             #don't use properties of "sky" node
@@ -120,6 +125,7 @@ class Radiation:
                 wall = self.roomNode[n]["wall"]
                 T = wall.T_prof[d["T_index"]]
                 Eb[n] = self.sigma * T**4
+                Eb[n] *= d["epsilon_over_alpha"] # use a modified black body radiation if epsilon != alpha
                 A[n] = d['A']
             bR[n] = d["boundaryResistance"]
         J = np.linalg.solve(self.A, Eb)

@@ -112,10 +112,10 @@ def runMyBEM(
         "radG": rad,
         "Tfloor": np.mean(Touts) + floorTempAdjustment,
     }
-    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "alpha" : 0.7, "n": n}
-    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior), "alpha" : 0.7, "n": n}
-    wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, hExterior), "alpha" : alphaRoof, "n": n}
-    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "alpha" : 0.7, "n": nFloor}
+    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "absorptivity" : 0.7, "n": n}
+    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior), "absorptivity" : 0.7,  "n": n}
+    wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, 4 * hExterior), "absorptivity" : alphaRoof, "n": n}
+    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "absorptivity" : 0.7, "n": nFloor}
 
     room_kwargs = {
         "T0": np.mean(Touts), #Touts[0],
