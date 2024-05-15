@@ -10,7 +10,7 @@ def convectionDOE2(h_nat, V_10, R_f):
     beta = np.mean([0.617, 0.89])
     return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V_10**beta)**2)**0.5
     
-def processMaterials(material_df, n, dt = None):
+def processMaterials(material_df, n, dt = None, verbose = True):
     """
     Process pandas df of materials that make up wall
     """
@@ -40,7 +40,8 @@ def processMaterials(material_df, n, dt = None):
             densityMargin = 1.1
             densityMin = densityMargin * dt * material_df.loc[index, "Conductivity"] / (delx**2 * material_df.loc[index, "Specific_Heat"])
             if densityMin > material_df.loc[index, "Density"]:
-                print(f"WARNING: Material {material_df['index'][index]} has density of {material_df.loc[index, 'Density']} but should be at least {densityMin} for time step {dt} ({int(densityMin/material_df.loc[index, 'Density'])}X)")
+                if verbose:
+                    print(f"WARNING: Material {material_df['index'][index]} has density of {material_df.loc[index, 'Density']} but should be at least {densityMin} for time step {dt} ({int(densityMin/material_df.loc[index, 'Density'])}X)")
                 material_df.loc[index, "Density"] = densityMin
     material_df.set_index("index", inplace = True)
     material_df["depth"] = material_df["Thickness"].cumsum()
