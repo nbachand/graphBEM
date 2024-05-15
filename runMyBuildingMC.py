@@ -121,7 +121,7 @@ def cleanMaterial(materialName, reverse = True, constructrionFile = "energyPlus/
                 material_df.append(materials.loc[material])
     return pd.DataFrame(material_df)
 
-def main(N = 100, runDays = 7, resultsKey = "timestr", randomSeed = 666, material_types = ["Light", "Medium", "Heavy"]):
+def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, material_types = ["Light", "Medium", "Heavy"]):
 
     mainStart = time.time()
 
