@@ -46,3 +46,14 @@ __env__/
 # pyinstaller
 build/
 *.spec
+
+# zipped files
+*.zip
+
+# weather files
+*.BINM
+*.DDY2
+*FIN4*
+*.ddy
+*.stat
+.DS_store
