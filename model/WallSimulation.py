@@ -60,8 +60,8 @@ class WallSimulation:
         self.processMaterialDict(self.material_df)
         self.x = np.linspace(0, self.th, self.n + 2)
 
-    def processMaterialDict(self, material_df):
-        material_df = processMaterials(material_df, self.n, dt = self.delt)
+    def processMaterialDict(self, material_df, verbose = True):
+        material_df = processMaterials(material_df, self.n, dt = self.delt, verbose = verbose)
         # self.n  = int(material_df["n"].sum())
         self.th = np.sum(material_df["Thickness"])
         self.delx = self.th / (self.n + 1) # set delx to evenly divide the thickness
