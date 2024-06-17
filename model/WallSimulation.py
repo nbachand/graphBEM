@@ -41,7 +41,7 @@ def processMaterials(material_df, n, dt = None, verbose = True):
             densityMin = densityMargin * dt * material_df.loc[index, "Conductivity"] / (delx**2 * material_df.loc[index, "Specific_Heat"])
             if densityMin > material_df.loc[index, "Density"]:
                 if verbose:
-                    print(f"WARNING: Material {material_df['index'][index]} has density of {material_df.loc[index, 'Density']} but should be at least {densityMin} for time step {dt} ({int(densityMin/material_df.loc[index, 'Density'])}X)")
+                    print(f"WARNING: Material {material_df['index'][index]} has density of {material_df.loc[index, 'Density']} but will be adjusted to {densityMin} for time step {dt} ({int(densityMin/material_df.loc[index, 'Density'])}X)")
                 material_df.loc[index, "Density"] = densityMin
     material_df.set_index("index", inplace = True)
     material_df["depth"] = material_df["Thickness"].cumsum()
