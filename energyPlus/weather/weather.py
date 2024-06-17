@@ -159,7 +159,7 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
 
     data = pd.DataFrame()
     for zone, info in climate_zones.items():
-        epw_file = f"./weather/CAClimateZones/{info['WeatherFile']}/{info['WeatherFile']}.epw"
+        epw_file = f"./energyPlus/weather/CAClimateZones/{info['WeatherFile']}/{info['WeatherFile']}.epw"
         zoneData = process_epw_file(epw_file, verbose=verbose)
         zoneData["City"] = info["City"]
         zoneData["Latitude"] = info["Latitude"]
@@ -172,6 +172,7 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
 
 def sampleVentWeather(data, climate_zones, runDays, dt, plot=False):
     # Constants
+    dt = 3600  # Data time step in seconds
     coolingThreshold = 24
     coolingDegBase = 21
     daySteps = 24 * 60 * 60 // dt  # Number of time steps in a day
@@ -213,13 +214,13 @@ def sampleVentWeather(data, climate_zones, runDays, dt, plot=False):
 
         # Calculate cooling degree days and ventilation degree days
         for i in range(runDays):
-            avg_temp = (daily_highs[i] + daily_lows[i]) / 2
+            avg_temp = (daily_highs.iloc[i] + daily_lows.iloc[i]) / 2
             cooling_degree_day = max(0, avg_temp - coolingDegBase)
             cooling_degree.append(cooling_degree_day)
         
-            if daily_lows[i + 1] < coolingThreshold:
+            if daily_lows.iloc[i + 1] < coolingThreshold:
                 vent_degree.append(cooling_degree_day)
-                vent_wind.append(daily_wind[i])
+                vent_wind.append(daily_wind.iloc[i])
             else:
                 vent_degree.append(0)
 
@@ -254,9 +255,9 @@ def sampleVentWeather(data, climate_zones, runDays, dt, plot=False):
         # Scatter plot for cooling degree and ventilation degree
         for i in range(runDays):
             if cooling_degree[i] > 0:
-                plt.scatter(daily_highs.index[i], daily_lows[i] + cooling_degree[i], color='orange', label='Cooling Degree' if i == 0 else "")
+                plt.scatter(daily_highs.index[i], daily_lows.iloc[i] + cooling_degree[i], color='orange', label='Cooling Degree' if i == 0 else "")
             if vent_degree[i] > 0:
-                plt.scatter(daily_highs.index[i], daily_lows[i] + vent_degree[i], color='green', label='Ventilation Degree' if i == 0 else "")
+                plt.scatter(daily_highs.index[i], daily_lows.iloc[i] + vent_degree[i], color='green', label='Ventilation Degree' if i == 0 else "")
                 plt.scatter(daily_highs.index[i], vent_wind[i] * 10, color='black', label='Ventilation Wind' if i == 0 else "")
     
         # Add labels and title
