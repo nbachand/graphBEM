@@ -60,7 +60,7 @@ class WallSimulation:
         self.processMaterialDict(self.material_df)
         self.x = np.linspace(0, self.th, self.n + 2)
 
-    def processMaterialDict(self, material_df, verbose = True):
+    def processMaterialDict(self, material_df, verbose = False):
         material_df = processMaterials(material_df, self.n, dt = self.delt, verbose = verbose)
         # self.n  = int(material_df["n"].sum())
         self.th = np.sum(material_df["Thickness"])
