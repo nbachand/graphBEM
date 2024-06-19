@@ -41,7 +41,7 @@ def processMaterials(material_df, n, dt = None, verbose = True):
             densityMin = densityMargin * dt * material_df.loc[index, "Conductivity"] / (delx**2 * material_df.loc[index, "Specific_Heat"])
             if densityMin > material_df.loc[index, "Density"]:
                 if verbose:
-                    print(f"WARNING: Material {material_df['index'][index]} has density of {material_df.loc[index, 'Density']} but should be at least {densityMin} for time step {dt} ({int(densityMin/material_df.loc[index, 'Density'])}X)")
+                    print(f"WARNING: Material {material_df['index'][index]} has density of {material_df.loc[index, 'Density']} but will be adjusted to {densityMin} for time step {dt} ({int(densityMin/material_df.loc[index, 'Density'])}X)")
                 material_df.loc[index, "Density"] = densityMin
     material_df.set_index("index", inplace = True)
     material_df["depth"] = material_df["Thickness"].cumsum()
@@ -60,8 +60,8 @@ class WallSimulation:
         self.processMaterialDict(self.material_df)
         self.x = np.linspace(0, self.th, self.n + 2)
 
-    def processMaterialDict(self, material_df):
-        material_df = processMaterials(material_df, self.n, dt = self.delt)
+    def processMaterialDict(self, material_df, verbose = False):
+        material_df = processMaterials(material_df, self.n, dt = self.delt, verbose = verbose)
         # self.n  = int(material_df["n"].sum())
         self.th = np.sum(material_df["Thickness"])
         self.delx = self.th / (self.n + 1) # set delx to evenly divide the thickness

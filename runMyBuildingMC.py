@@ -9,6 +9,7 @@ from epw import epw
 import random
 import os
 import time
+from energyPlus.weather.weather import *
 
 plt.close('all')
 
@@ -137,43 +138,10 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
 
 
     # %%
-    a = epw()
-    a.read("./energyPlus/weather/USA_CA_Sacramento.724835_TMY2.epw")
-    a.dataframe.index = pd.to_datetime(a.dataframe[['Year', 'Month', 'Day', 'Hour', 'Minute']])
-    print(a.dataframe.keys())
-    print(set(a.dataframe["Year"]))
-
-
-
-    # %%
-    data = a.dataframe[(a.dataframe["Month"]==8) & (a.dataframe["Day"] >= 1)]
-
-    # fig, ax = plt.subplots()
-    # ax.plot(data.index, data["Extraterrestrial Horizontal Radiation"], label = "Extraterrestrial Horizontal Radiation")
-    # ax.plot(data.index, data["Extraterrestrial Direct Normal Radiation"], label = "Extraterrestrial Direct Normal Radiation")
-    # ax.plot(data.index, data["Horizontal Infrared Radiation Intensity"], label = "Horizontal Infrared Radiation Intensity")
-    # ax.plot(data.index, data["Global Horizontal Radiation"], label = "Global Horizontal Radiation")
-    # ax.plot(data.index, data["Direct Normal Radiation"], label = "Direct Normal Radiation")
-    # ax.plot(data.index, data["Diffuse Horizontal Radiation"], label = "Diffuse Horizontal Radiation")
-    # ax.legend()
+    data, climate_zones = getWeatherData()
 
     data["Total Sky Radiation"] = data["Horizontal Infrared Radiation Intensity"] + data["Global Horizontal Radiation"]
     dt = 30
-    data = data.resample(f"{dt}s").interpolate()
-    # fig = px.line(data, x = data.index, y = [
-    #     "Total Sky Radiation",
-    #     "Dry Bulb Temperature",
-    #     ])
-    # fig.show()
-    del a
-
-
-
-    # %%
-    daySteps = int(24 * 60 * 60 / dt)
-    hStartOffset = 8
-    startOffsetSteps = int(hStartOffset * 60 * 60 / dt)
-    totalSteps, _ = data.shape
 
 
 
@@ -194,8 +162,9 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
 
 
     # %%
+    weatherPropertiesRecord = []
     chosenData = []
-    material_types_record = []
+    materialTypesRecord = []
     chosenMaterial = []
     floorTempAdjustment = []
     hInterior = []
@@ -209,12 +178,9 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
     else:
         parallel = True
     for i in range(N):
-        runSteps = int(runDays * daySteps)
-        startStep = random.randrange(startOffsetSteps, totalSteps-runSteps-startOffsetSteps, daySteps)
         material_type = random.choice(material_types)
-        material_types_record.append(material_type)
+        materialTypesRecord.append(material_type)
         chosenMaterial.append(setConstructionType(materials, material_type))
-        chosenData.append(data.iloc[startStep : startStep + runSteps])
         floorTempAdjustment.append(random.uniform(-3.5, -5))
         hInterior.append(random.uniform(1, 3))
         alphaRoof.append(random.uniform(0.6, 0.9))
@@ -222,7 +188,13 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
         wallRoughness.append(random.uniform(1.11, 2.17))
         hExterior.append(convectionDOE2(random.uniform(1, 3), windSpeed[i], wallRoughness[i])) #using DOE-2 to calculate this
 
+        weatherProperties, dataSampled = sampleVentWeather(data, climate_zones, runDays, dt=dt, plot=False)
+        weatherPropertiesRecord.append(weatherProperties)
+        dataSampled = dataSampled.infer_objects(copy=False)
+        dataSampled = dataSampled.resample(f"{dt}s").interpolate()
+        chosenData.append(dataSampled)
 
+    print("Generated BEM inputs")
     inputsMC = [chosenData, chosenMaterial, floorTempAdjustment, hInterior, hExterior, alphaRoof]
 
     # parallel = False
@@ -236,7 +208,8 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
         else:
             key = resultsKey
         inputsMCdf = pd.DataFrame(inputsMC[2:], index = ["floorTempAdjustment", "hInterior", "hExterior", "alphaRoof"]).T
-        inputsMCdf["material_type"] = material_types_record
+        inputsMCdf["weatherProperties"] = weatherPropertiesRecord
+        inputsMCdf["material_type"] = materialTypesRecord
         inputsMCdf["windSpeed"] = windSpeed
         inputsMCdf["wallRoughness"] = wallRoughness
         inputsMCdf.to_csv(f"./resultsMC/inputs_{key}.csv")

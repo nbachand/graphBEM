@@ -18,9 +18,13 @@ def tempPlotBasics():
     plt.tight_layout()
     return
 
-def plotVentLines(t, allVent):
+def plotVentLines(t, allVent, points = []):
     # if allVent == False:
-    plt.axvline(t, linestyle = '-.', color = '.8')
+    plt.axvline(t, linestyle = ':', color = '.8')
+    markers = ['x', '4', '1', '2', '3', '8', 's', 'p', 'P', '*', 'h', 'H', 'X', 'D', 'd', '|', '+']
+    for i, point in enumerate(points):
+        # plot x's for each point in points
+        plt.scatter(t, point, color = '.8', marker=markers[i])
     return
 
 def runMyBEM(
@@ -34,6 +38,7 @@ def runMyBEM(
         startVentHour = 16,
         otherVentHours = [23],
         coolingThreshold = 273.15 + 24, # 24 C or 75 F
+        coolingReference = 273.15 + 21, # 21 C or 70 F
         verbose = False,
         makePlots = False):
     
@@ -183,23 +188,29 @@ def runMyBEM(
     outputs["Tout"] = []
     outputs["ToutMinusTint"] = []
     outputs["maxToutVent"] = []
+    outputs["minToutVent"] = []
+    outputs["WSVent"] = []
     T_old = 0
     stepsDay = 24 * 60 * 60 / dt
     iVentMin = stepsDay / 4
     n = 0 # tracking the nth ventilation time of the night
     lastMaxTout = 0
+    lastMinTout = 999
     for i, T in enumerate(Tout_minus_in):
         h = times.index.hour[i]
         if h == 0:
-            lastMaxTout = 0
-        elif build_sim.Tout[i] > lastMaxTout:
             lastMaxTout = build_sim.Tout[i]
+            lastMinTout = build_sim.Tout[i]
+        else:
+            lastMaxTout = max(build_sim.Tout[i], lastMaxTout)
+            lastMinTout = min(build_sim.Tout[i], lastMinTout)
+        if h == startVentHour:
+            n = 0 # reset the ventilation number counter
+            day = times.index.day[i] - times.index.day[0] #reset the day counter to avoid changing overnight
         if T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold and h > startVentHour and (T_old > 0 or allVent == True or h in otherVentHours):
-            if i > iVentMin + 1: # indicating this is not a continuing ventilation
-                day = times.index.day[i] - times.index.day[0]
+            if n == 0: # indicating this is the first ventilation event of the night
                 lastMaxToutVent = lastMaxTout #making sure this is not reset during the building ventilation period
-                if h not in otherVentHours:
-                    n = 0
+                lastMinToutVent = lastMinTout #making sure this is not reset during the building ventilation period
             if allVent == True or len(otherVentHours) > 0:
                 iVentMin = i + stepsDay / 24
             else: 
@@ -213,6 +224,8 @@ def runMyBEM(
             outputs["Tout"].append(build_sim.Tout[i])
             outputs["ToutMinusTint"].append(T)
             outputs["maxToutVent"].append(lastMaxToutVent)
+            outputs["minToutVent"].append(lastMinToutVent)
+            outputs["WSVent"].append(weather_data["Wind Speed"][i])
             n += 1
             if verbose and allVent == False:
                 print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
@@ -226,8 +239,12 @@ def runMyBEM(
     #### General Plots
 
     if makePlots:
-        for i in iVent:
-            plotVentLines(times.index.values[i], allVent)
+        for c, i in enumerate(iVent):
+            plotVentLines(times.index.values[i], allVent, points=[
+                np.mean([outputs["maxToutVent"][c], outputs["minToutVent"][c]]),
+                300 + outputs["WSVent"][c],
+                ])
+        plt.axhline(coolingReference, linestyle = '--', color = '.8')
         plt.plot(times.index.values, Tints_avg, label="Average Interior Temperature", color = 'k', linestyle = '--')
         plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
