@@ -190,6 +190,7 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
 
         weatherProperties, dataSampled = sampleVentWeather(data, climate_zones, runDays, dt=dt, plot=False)
         weatherPropertiesRecord.append(weatherProperties)
+        dataSampled = dataSampled.infer_objects(copy=False)
         dataSampled = dataSampled.resample(f"{dt}s").interpolate()
         chosenData.append(dataSampled)
 

@@ -1,2 +1,2 @@
-,floorTempAdjustment,hInterior,hExterior,alphaRoof,material_type,windSpeed,wallRoughness
-0,-4.491600585167717,1.7074347482641217,2.870370968714799,0.7092391382721889,Heavy,0.5436689024632537,1.7810506810964886
+,floorTempAdjustment,hInterior,hExterior,alphaRoof,weatherProperties,material_type,windSpeed,wallRoughness
+0,-4.972769341282433,1.7540504848118945,2.6129391526283845,0.6850498985513152,"{'zone': 15, 'month': 10, 'cooling_degree_days': 21.0, 'ventilation_degree_days': 21.0, 'ventilation_wind': 3.110481366459627}",Heavy,0.08533822646853984,1.6905960855401618
