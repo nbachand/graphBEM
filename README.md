@@ -219,4 +219,16 @@ At each timestep, the order of solving models is:
 
 All rooms are $H_{R}=3 m$ tall. Most rooms are square and $L_{R}$=4 m across. The cross ventilated room is the exception, being $L_{R}$ wide and 2 $L_{R}$ long. The floor plan of each house, shown in figure \ref{fig:Floor Plan}, is 3 $L_R$ by 2 $L_R$. The roof is flat for the purposes of solar radiation. Windows are not expolicitly modeled, but would be $H_{R}/4$ by $H_{R}/4$. The two rooms in the dual-ventilated room are connected by an open door-frame $H_{R}/4$ wide by 3 $H_{R}/4$ tall, although in the BEM this is considered as a single air volume.
 
+## Plan2EPlus Description
+
+```
+[
+  [
+    {"id":0,"label":"corner_ventilation","left":"0.00","top":"0.00","width":"4.00","height":"4.00","color":""},
+    {"id":1,"label":"single_sided_ventilation","left":"4.00","top":"0.00","width":"4.00","height":"4.00","color":""},
+    {"id":2,"label":"dual_room_ventilation","left":"0.00","top":"4.00","width":"8.00","height":"4.00","color":""},
+    {"id":3,"label":"cross_ventilation","left":"8.00","top":"0.00","width":"4.00","height":"8.00","color":""}
+  ]
+]
+```
 ---
