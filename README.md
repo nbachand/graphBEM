@@ -214,5 +214,9 @@ At each timestep, the order of solving models is:
 2) Walls
 3) Rooms
 
+# My Building (Example)
+![Picture1](https://github.com/user-attachments/assets/5522a357-135d-4f6d-b77e-d0e44689033d)
+
+All rooms are $H_{R}=3 m$ tall. Most rooms are square and $L_{R}$=4 m across. The cross ventilated room is the exception, being $L_{R}$ wide and 2 $L_{R}$ long. The floor plan of each house, shown in figure \ref{fig:Floor Plan}, is 3 $L_R$ by 2 $L_R$. The roof is flat for the purposes of solar radiation. Windows are not expolicitly modeled, but would be $H_{R}/4$ by $H_{R}/4$. The two rooms in the dual-ventilated room are connected by an open door-frame $H_{R}/4$ wide by 3 $H_{R}/4$ tall, although in the BEM this is considered as a single air volume.
 
 ---
