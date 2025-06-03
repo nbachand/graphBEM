@@ -1,11 +1,14 @@
 from epw import epw
 from matplotlib import pyplot as plt
+import matplotlib.ticker as mticker
+import matplotlib.colors as mcolors
 import pandas as pd
 import numpy as np
 import scipy as sp
 import plotly.express as px
 import random
 import seaborn as sns
+import geopandas as gpd
 
 def process_epw_file(file_path, verbose=False):
     # Initialize the EPW object
@@ -170,20 +173,22 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
     
     return data, climate_zones
 
-def sampleVentWeather(data, climate_zones, runDays, dt, plot=False):
+def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThreshold=24, coolingDegBase=21, ventThreshold=None, keep = "VDDs"):
     # Constants
     dt = 3600  # Data time step in seconds
-    coolingThreshold = 24
-    coolingDegBase = 21
     daySteps = 24 * 60 * 60 // dt  # Number of time steps in a day
     hStartOffset = 8  # Start offset in hours
     startOffsetSteps = hStartOffset * 60 * 60 // dt  # Start offset in steps
     weatherDays = runDays + int(np.ceil(hStartOffset / 24))  # Total days including offset
     runSteps = runDays * daySteps  # Total run steps
     weatherSteps = weatherDays * daySteps  # Total weather steps
+    daysChecked = 0
+    if ventThreshold is None:
+        ventThreshold = coolingThreshold
 
     foundVentWeatherData = False
     while foundVentWeatherData == False:
+        daysChecked += runDays
         # Randomly select a climate zone and month
         chosenZone = random.choice(list(climate_zones.keys()))
         chosenMonth = random.randint(1, 12)
@@ -215,10 +220,13 @@ def sampleVentWeather(data, climate_zones, runDays, dt, plot=False):
         # Calculate cooling degree days and ventilation degree days
         for i in range(runDays):
             avg_temp = (daily_highs.iloc[i] + daily_lows.iloc[i]) / 2
-            cooling_degree_day = max(0, avg_temp - coolingDegBase)
+            if avg_temp > coolingThreshold:
+                cooling_degree_day = avg_temp - coolingDegBase
+            else:
+                cooling_degree_day = 0
             cooling_degree.append(cooling_degree_day)
         
-            if daily_lows.iloc[i + 1] < coolingThreshold:
+            if daily_lows.iloc[i + 1] < ventThreshold:
                 vent_degree.append(cooling_degree_day)
                 vent_wind.append(daily_wind.iloc[i])
             else:
@@ -227,7 +235,9 @@ def sampleVentWeather(data, climate_zones, runDays, dt, plot=False):
         # Calculate total cooling degree days and ventilation degree days
         cooling_degree_days = np.sum(cooling_degree)
         vent_degree_days = np.sum(vent_degree)
-        if vent_degree_days >= runDays:
+        if keep == "VDDs" and vent_degree_days > 0: #runDays:
+            foundVentWeatherData = True
+        elif keep == "CDDs" and cooling_degree_days > 0:
             foundVentWeatherData = True
 
     # Append the calculated values to the weatherProperties dictionary
@@ -236,7 +246,8 @@ def sampleVentWeather(data, climate_zones, runDays, dt, plot=False):
         "month": chosenMonth,
         "cooling_degree_days": cooling_degree_days,
         "ventilation_degree_days": vent_degree_days,
-        "ventilation_wind": np.mean(vent_wind)
+        "ventilation_wind": np.mean(vent_wind),
+        "days_checked": daysChecked
     }
 
     # Select the data for the run period
@@ -268,3 +279,98 @@ def sampleVentWeather(data, climate_zones, runDays, dt, plot=False):
         plt.grid(True)
 
     return weatherProperties, dataSampled
+
+# Plot histograms
+# Create a figure and a set of subplots
+def plotWeatherHists(df, weights, columns, xlim = None, ylim = None, yearScaling = 1):
+    fig, (ax_box, ax_hist) = plt.subplots(nrows=2, ncols=2, figsize=(10, 4), sharex='col', gridspec_kw={"height_ratios": (.15, .85)})
+    for i, column in enumerate(columns):
+        dfCopy = df.copy()
+        if column == weights:
+            histWeights = None
+        else:
+            histWeights = weights
+        if histWeights is not None:
+            stat = "count"
+            dfCopy[weights] *= yearScaling
+            ax_hist[i].set_ylabel(f'{weights} / Year')
+        else:
+            stat = "probability"
+            ax_hist[i].set_ylabel('Percentage')
+            ax_hist[i].yaxis.set_major_formatter(mticker.PercentFormatter(1.0))
+        ax_hist[i].set_xlabel(column)
+        binrange = (np.floor(dfCopy[column].min()), np.ceil(dfCopy[column].max()))
+        if dfCopy[column].dtype == 'int64' or dfCopy[column].dtype == 'object':
+            discrete = True
+        else:
+            discrete = False
+        sns.histplot(data = dfCopy, x = column, weights = histWeights, binwidth = 1, binrange=binrange, discrete=discrete, ax=ax_hist[i], stat = stat, color="lightgrey")
+        if column == "Month":
+            ax_hist[i].set_xticks(np.arange(1, 13))
+            ax_hist[i].set_xticklabels(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])
+        elif column == "WSVent":
+            # binwidth = 1
+            ax_hist[i].set_xlabel("Wind Speed [m/s]")
+        if ylim is not None:
+            ax_hist[i].set_ylim(ylim)
+        if xlim is not None:
+            ax_hist[i].set_xlim(xlim)
+        sns.boxplot(data = dfCopy, x = column, ax=ax_box[i], whis=(5, 95), showfliers=False, color="white")
+
+        ax_box[i].set(yticks=[])
+        sns.despine(ax=ax_hist[i])
+        sns.despine(ax=ax_box[i], left=True)
+
+    plt.tight_layout()
+    plt.show()
+
+    return fig, (ax_box, ax_hist)
+
+
+def plotCZMap(df, categories = "Climate Zone", weights = None, vmin = 0, vmax = None, colormap = "GnBu", countType = "sum"):
+    # Load California climate zone shapefile
+    gdf = gpd.read_file("energyPlus/weather/CAClimateZones/BuildingClimateZonesGIS/Building_Climate_Zones.shp")
+
+    # Assume you have a DataFrame with climate zone and probability data
+    _, climate_zones = getWeatherData()
+    climate_data = pd.DataFrame(climate_zones).T  # Replace with your actual data
+
+    if weights is not None:
+        if countType == "sum":
+            weighted_counts = df.groupby(categories)[weights].sum()
+        elif countType == "mean":
+            weighted_counts = df.groupby(categories)[weights].mean()
+        else:
+            raise ValueError(f"Invalid countType: {countType}")
+        weighted_counts = weighted_counts.reset_index()
+        weighted_counts = weighted_counts.set_index(categories)
+        weighted_counts = weighted_counts[weights]
+        if countType == "sum":
+            weighted_counts *= 365 * weighted_counts.index.max() / df["Total Days"].values[0]   
+    else:
+        weighted_counts = pd.Series(df[categories].value_counts())
+        weighted_counts *= 100 / df.shape[0]
+        weights = "Percentage"
+    climate_data[weights] = weighted_counts
+    climate_data[weights] = climate_data[weights].fillna(0)
+
+    climate_data.index = climate_data.index.astype(str)
+    climate_data = climate_data.reset_index(names='BZone')
+
+    # Join probability data to the GeoDataFrame
+    gdf = gdf.merge(climate_data, on="BZone", how="left")
+
+    # Create a colormap based on probability values
+    cmap = plt.cm.get_cmap(colormap)  # Adjust colormap as needed
+    if vmax is None:
+        norm = None
+    else:
+        norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+
+    # Plot the map
+    fig, ax = plt.subplots(figsize=(5, 5))
+    gdf.plot(column=weights, cmap=cmap, norm=norm, legend=True, ax=ax)
+    gdf.apply(lambda x: ax.annotate(text=x['BZone'], xy=x.geometry.centroid.coords[0], ha='center'), axis=1);
+    ax.set_title(f"California Climate Zones {weights}")
+
+    return fig, ax

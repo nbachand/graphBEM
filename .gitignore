@@ -57,3 +57,10 @@ build/
 *.ddy
 *.stat
 .DS_store
+
+# GIS files
+*.cpg
+*.dbf
+*.prj
+*.sbn
+*.sbx
