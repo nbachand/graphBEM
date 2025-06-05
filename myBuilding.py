@@ -38,6 +38,7 @@ def runMyBEM(
         startVentHour = 16,
         otherVentHours = [23],
         coolingThreshold = 273.15 + 24, # 24 C or 75 F
+        ventThreshold = 273.15 + 24, # 24 C or 75 F
         coolingReference = 273.15 + 21, # 21 C or 70 F
         verbose = False,
         makePlots = False):
@@ -62,6 +63,7 @@ def runMyBEM(
     times -= times.iloc[0]
     dt = times.iloc[1]
     Touts = weather_data["Dry Bulb Temperature"].values + 273.15
+    Tout_mins = weather_data.resample('D')['Dry Bulb Temperature'].min()  + 273.15
     rad = weather_data["Total Sky Radiation"].values
 
     # Plotting the weather data
@@ -190,12 +192,14 @@ def runMyBEM(
     outputs["maxToutVent"] = []
     outputs["minToutVent"] = []
     outputs["WSVent"] = []
+    outputs["WDVent"] = []
     T_old = 0
     stepsDay = 24 * 60 * 60 / dt
     iVentMin = stepsDay / 4
     n = 0 # tracking the nth ventilation time of the night
     lastMaxTout = 0
     lastMinTout = 999
+    day = 0
     for i, T in enumerate(Tout_minus_in):
         h = times.index.hour[i]
         if h == 0:
@@ -207,12 +211,14 @@ def runMyBEM(
         if h == startVentHour:
             n = 0 # reset the ventilation number counter
             day = times.index.day[i] - times.index.day[0] #reset the day counter to avoid changing overnight
-        if T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold and h > startVentHour and (T_old > 0 or allVent == True or h in otherVentHours):
+        if T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold and Tout_mins[day+1] < ventThreshold and h > startVentHour and (T_old > 0 or allVent == True or h in otherVentHours):
             if n == 0: # indicating this is the first ventilation event of the night
                 lastMaxToutVent = lastMaxTout #making sure this is not reset during the building ventilation period
                 lastMinToutVent = lastMinTout #making sure this is not reset during the building ventilation period
-            if allVent == True or len(otherVentHours) > 0:
-                iVentMin = i + stepsDay / 24
+            if allVent == True or h in otherVentHours:
+                iVentMin = i + stepsDay / 24 # 1 hour wait
+            elif len(otherVentHours) > 0:
+                iVentMin = i + stepsDay / 24 / 6 # 10 minutes wait
             else: 
                 iVentMin = i + stepsDay / 2 # Wait at least half a day before venting again
             hVent.append(times.index.hour[i])
@@ -226,6 +232,7 @@ def runMyBEM(
             outputs["maxToutVent"].append(lastMaxToutVent)
             outputs["minToutVent"].append(lastMinToutVent)
             outputs["WSVent"].append(weather_data["Wind Speed"][i])
+            outputs["WDVent"].append(weather_data["Wind Direction"][i])
             n += 1
             if verbose and allVent == False:
                 print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
