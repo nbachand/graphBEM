@@ -171,6 +171,9 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
         zoneData["ClimateZone"] = zone
         data = pd.concat([data, zoneData], axis="index")
     
+    data["Total Sky Radiation"] = data["Horizontal Infrared Radiation Intensity"] + data["Global Horizontal Radiation"]
+    data["Equivalent Sky Temperature"] = (data["Total Sky Radiation"] / 5.67e-8)**0.25 - 273.15
+
     return data, climate_zones
 
 def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThreshold=24, coolingDegBase=21, ventThreshold=None, keep = "VDDs"):

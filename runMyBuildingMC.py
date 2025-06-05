@@ -139,8 +139,6 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
 
     # %%
     data, climate_zones = getWeatherData()
-
-    data["Total Sky Radiation"] = data["Horizontal Infrared Radiation Intensity"] + data["Global Horizontal Radiation"]
     dt = 30
 
 
