@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 from model.utils import *
 from model import \
     RoomSimulation as rs, \
@@ -80,14 +81,15 @@ class BuildingSimulation():
 
 
     def run(self):
-        for c in range(1, self.N):
+        print(f"Running simulation for {self.N - 1} time steps")
+        for c in tqdm(range(1, self.N), desc="Time Steps"):
             self.t = self.times[c]
             self.hour = self.t / 60 / 60
 
             # Simulation logic
             # Solve Radiation
             for n, d in self.bG.G.nodes(data=True):
-                E = d["rad"].timeStep(self.radG[c])
+                E = d["rad"].timeStep(solarGain = self.radG[c])
                 E = E.dropna()
                 for wall, EWall in E.items():
                     if wall == "sky":
