@@ -1,14 +1,9 @@
 import numpy as np
-import scipy as sp
 from matplotlib import pyplot as plt
 from model import BuildingSimulation as bs, BuildingGraph as bg
 from model.WallSimulation import processMaterials
 from model.utils import *
 import matplotlib.colors as mcolors
-import seaborn as sns
-import networkx as nx
-from epw import epw
-import plotly.express as px
 import warnings
 
 def tempPlotBasics():
@@ -158,7 +153,7 @@ def runMyBEM(
         "vent_kwargs": vent_kwargs,
         "rad_kwargs": {"solveType": None},
         })
-    bG.updateNodes({"rad_kwargs": rad_kwargs_RF}, nodes=["RF"])
+    bG.updateNodes({"rad_kwargs": rad_kwargs_RF}, nodes=["RF", "OD"])
     bG.updateNodes({"rad_kwargs": rad_kwargs_FL}, nodes=["SS", "DR", "CV", "CR"])
 
     for r in ["CR", "DR"]:

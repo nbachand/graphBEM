@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.linalg as sp_linalg
 from model.utils import *
 
 def convectionDOE2(h_nat, V_10, R_f):

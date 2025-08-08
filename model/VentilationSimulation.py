@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.integrate import trapz
+from numpy import trapz
 
 class VentilationSimulation:
     def __init__(self, **kwargs):
