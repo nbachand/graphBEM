@@ -178,6 +178,39 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
 
     return data, zoneMeta, climate_zones
 
+def getRadData(data, meta, tilts=[0], azimuths=[0, 90, 180, 270]):
+    solpos = pvlib.solarposition.get_solarposition(
+        time=data.index,
+        latitude=meta['latitude'],
+        longitude=meta['longitude'],
+        altitude=meta['altitude']
+    )
+
+    dni_extra = pvlib.irradiance.get_extra_radiation(data.index)
+    # --- Compute POA for many azimuths and average ---
+    poa_list = []
+
+    for az in azimuths:
+        for tilt in tilts:
+            poa_tmp = pvlib.irradiance.get_total_irradiance(
+                surface_tilt=tilt,
+                surface_azimuth=az,
+                dni=data['dni'],
+                ghi=data['ghi'],
+                dhi=data['dhi'],
+                dni_extra=dni_extra,
+                solar_zenith=solpos['zenith'],
+                solar_azimuth=solpos['azimuth'],
+                model='perez'
+            )
+            poa_list.append(poa_tmp)
+
+    # --- Combine into DataFrame and average across azimuths ---
+    poa_all = pd.concat(poa_list, axis=0)   # columns = each azimuth
+    poa_avg = poa_all.groupby(level=0).mean()
+
+    return poa_avg
+
 def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThreshold=24, coolingDegBase=21, ventThreshold=None, keep = "VDDs"):
     # Constants
     dt = 3600  # Data time step in seconds
