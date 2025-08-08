@@ -9,6 +9,7 @@ import seaborn as sns
 import networkx as nx
 from epw import epw
 import plotly.express as px
+import warnings
 
 def tempPlotBasics():
     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
@@ -211,6 +212,9 @@ def runMyBEM(
         if h == startVentHour:
             n = 0 # reset the ventilation number counter
             day = times.index.day[i] - times.index.day[0] #reset the day counter to avoid changing overnight
+            if day >= len(Tout_mins) - 1:
+                warnings.warn(f"Day {day} has no subsequent minimum temperature in data (length: {len(Tout_mins)}). Stopping ventilation checks.")
+                break
         if T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold and Tout_mins[day+1] < ventThreshold and h > startVentHour and (T_old > 0 or allVent == True or h in otherVentHours):
             if n == 0: # indicating this is the first ventilation event of the night
                 lastMaxToutVent = lastMaxTout #making sure this is not reset during the building ventilation period
