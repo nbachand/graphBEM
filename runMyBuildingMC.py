@@ -5,7 +5,6 @@ from matplotlib import pyplot as plt
 from runMC import runMC
 from model.utils import *
 from model.WallSimulation import convectionDOE2
-from epw import epw
 import random
 import os
 import time

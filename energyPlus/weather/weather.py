@@ -1,4 +1,3 @@
-from epw import epw
 from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
 import matplotlib.colors as mcolors
@@ -9,16 +8,19 @@ import plotly.express as px
 import random
 import seaborn as sns
 import geopandas as gpd
+import pvlib
 
 def process_epw_file(file_path, verbose=False):
-    # Initialize the EPW object
-    a = epw()
+    # # Initialize the EPW object
+    # a = epw()
     
-    # Read the EPW file
-    a.read(file_path)
-    
+    # # Read the EPW file
+    # a.read(file_path)
+
+    data, meta = pvlib.iotools.read_epw(file_path)
+
     # Set the dataframe index to a datetime format
-    a.dataframe.index = pd.to_datetime(a.dataframe[['Year', 'Month', 'Day', 'Hour', 'Minute']])
+    # a.dataframe.index = pd.to_datetime(a.dataframe[['Year', 'Month', 'Day', 'Hour', 'Minute']])
     
     if verbose:
         print(f"Data for months: {set(a.dataframe['Month'])}, years: {set(a.dataframe['Year'])}")
@@ -35,14 +37,14 @@ def process_epw_file(file_path, verbose=False):
         print("Number of Ground Temperature Entries:", len(ground_temps))
     
     # Calculate unique months
-    uniqueMonths = a.dataframe.index[a.dataframe.index.day==15]
+    uniqueMonths = data.index[data.index.day==15]
     uniqueMonths = uniqueMonths.year.values + uniqueMonths.month.values/100
     uniqueMonths = np.unique(uniqueMonths)
     num_unique_months = len(uniqueMonths)
     if num_unique_months != 12:
         raise ValueError(f"Number of unique months is not 12. Found {num_unique_months} unique months.")
     # Return the processed information
-    return a.dataframe
+    return data, meta
     
 def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
     climate_zones = {
@@ -163,7 +165,7 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
     data = pd.DataFrame()
     for zone, info in climate_zones.items():
         epw_file = f"./energyPlus/weather/CAClimateZones/{info['WeatherFile']}/{info['WeatherFile']}.epw"
-        zoneData = process_epw_file(epw_file, verbose=verbose)
+        zoneData, zoneMeta = process_epw_file(epw_file, verbose=verbose)
         zoneData["City"] = info["City"]
         zoneData["Latitude"] = info["Latitude"]
         zoneData["Longitude"] = info["Longitude"]
@@ -171,10 +173,10 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
         zoneData["ClimateZone"] = zone
         data = pd.concat([data, zoneData], axis="index")
     
-    data["Total Sky Radiation"] = data["Horizontal Infrared Radiation Intensity"] + data["Global Horizontal Radiation"]
-    data["Equivalent Sky Temperature"] = (data["Total Sky Radiation"] / 5.67e-8)**0.25 - 273.15
+    # data["Total Sky Radiation"] = data["Horizontal Infrared Radiation Intensity"] + data["Global Horizontal Radiation"]
+    # data["Equivalent Sky Temperature"] = (data["Total Sky Radiation"] / 5.67e-8)**0.25 - 273.15
 
-    return data, climate_zones
+    return data, zoneMeta, climate_zones
 
 def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThreshold=24, coolingDegBase=21, ventThreshold=None, keep = "VDDs"):
     # Constants
@@ -211,9 +213,9 @@ def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThres
         dataSampled = dataSampled.iloc[startStep : startStep + weatherSteps]
 
         # Resample the data to daily highs, lows, and average wind speed
-        daily_highs = dataSampled.resample('D')['Dry Bulb Temperature'].max()[0:-1]
-        daily_lows = dataSampled.resample('D')['Dry Bulb Temperature'].min()
-        daily_wind = dataSampled.resample('D')['Wind Speed'].mean()
+        daily_highs = dataSampled.resample('D')['temp_air'].max()[0:-1]
+        daily_lows = dataSampled.resample('D')['temp_air'].min()
+        daily_wind = dataSampled.resample('D')['wind_speed'].mean()
 
         # Initialize lists to store daily values
         cooling_degree = []
@@ -258,9 +260,9 @@ def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThres
 
     if plot:
         plt.figure(figsize=(12, 6))
-    
-        # Plot the dry bulb temperature over time
-        plt.plot(dataSampled.index, dataSampled["Dry Bulb Temperature"], label='Dry Bulb Temperature')
+
+        # Plot the air temperature over time
+        plt.plot(dataSampled.index, dataSampled["temp_air"], label='Air Temperature')
     
         # Scatter plot for daily highs and lows
         plt.scatter(daily_highs.index, daily_highs, color='red', label='Daily Highs')
