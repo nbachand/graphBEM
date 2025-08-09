@@ -12,7 +12,7 @@ from model import \
 class BuildingSimulation():
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["delt", "simLength", "Tout", "radG", "Tfloor"])
+        expected_kwards = set(["delt", "simLength", "Tout", "hradG", "vradG", "Tfloor"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         self.t = 0 #time (seconds)
@@ -21,7 +21,8 @@ class BuildingSimulation():
         self.hours = self.times / 60 / 60
         self.N = len(self.times)
         self.Tout = getEquivalentTimeSeries(self.Tout, self.times)
-        self.radG = getEquivalentTimeSeries(self.radG, self.times)
+        self.hradG = getEquivalentTimeSeries(self.hradG, self.times)
+        self.vradG = getEquivalentTimeSeries(self.vradG, self.times)
         self.radDamping =  self.delt / (1 + self.delt)# 0 damping factor for radiation
 
     def initialize(self, bG:bg.BuildingGraph, verbose = False):
@@ -89,7 +90,7 @@ class BuildingSimulation():
             # Simulation logic
             # Solve Radiation
             for n, d in self.bG.G.nodes(data=True):
-                E = d["rad"].timeStep(solarGain = self.radG[c])
+                E = d["rad"].timeStep(solarGain = self.hradG[c])
                 E = E.dropna()
                 for wall, EWall in E.items():
                     if wall == "sky":

@@ -173,8 +173,8 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
         zoneData["ClimateZone"] = zone
         data = pd.concat([data, zoneData], axis="index")
     
-    # data["Total Sky Radiation"] = data["Horizontal Infrared Radiation Intensity"] + data["Global Horizontal Radiation"]
-    # data["Equivalent Sky Temperature"] = (data["Total Sky Radiation"] / 5.67e-8)**0.25 - 273.15
+    data["Horizontal Sky Radiation"] = getRadData(data, zoneMeta, tilts=[0], azimuths=[0])["poa_global"]
+    data["Vertical Sky Radiation"] = getRadData(data, zoneMeta, tilts=[90], azimuths=range(0, 360, 5))["poa_global"]
 
     return data, zoneMeta, climate_zones
 

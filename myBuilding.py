@@ -58,9 +58,10 @@ def runMyBEM(
     times = weather_data.index.to_series().apply(lambda x: x.timestamp())
     times -= times.iloc[0]
     dt = times.iloc[1]
-    Touts = weather_data["Dry Bulb Temperature"].values + 273.15
-    Tout_mins = weather_data.resample('D')['Dry Bulb Temperature'].min()  + 273.15
-    rad = weather_data["Total Sky Radiation"].values
+    Touts = weather_data["temp_air"].values + 273.15
+    Tout_mins = weather_data.resample('D')['temp_air'].min()  + 273.15
+    hrad = weather_data["Horizontal Sky Radiation"].values
+    vrad = weather_data["Vertical Sky Radiation"].values
 
     # Plotting the weather data
     if makePlots:
@@ -74,7 +75,8 @@ def runMyBEM(
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
         plt.subplot(2, 1, 2)
-        plt.plot(times.index.values, rad, label='Radiation (W/m^2)', color='orange')
+        plt.plot(times.index.values, hrad, label='Horizontal Radiation (W/m^2)', color='orange')
+        plt.plot(times.index.values, vrad, label='Vertical Radiation (W/m^2)', color='blue')
         plt.title('Daily Radiation Variation')
         plt.xlabel('Time')
         plt.ylabel('Radiation (W/m^2)')
@@ -112,7 +114,8 @@ def runMyBEM(
         "delt": times.values[1] - times.values[0],
         "simLength": times.values[-1] - times.values[0],
         "Tout" : Touts,
-        "radG": rad,
+        "hradG": hrad,
+        "vradG": vrad,
         "Tfloor": np.mean(Touts) + floorTempAdjustment,
     }
     wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "absorptivity" : 0.7, "n": n}
@@ -153,7 +156,7 @@ def runMyBEM(
         "vent_kwargs": vent_kwargs,
         "rad_kwargs": {"solveType": None},
         })
-    bG.updateNodes({"rad_kwargs": rad_kwargs_RF}, nodes=["RF", "OD"])
+    bG.updateNodes({"rad_kwargs": rad_kwargs_RF}, nodes=["RF"])
     bG.updateNodes({"rad_kwargs": rad_kwargs_FL}, nodes=["SS", "DR", "CV", "CR"])
 
     for r in ["CR", "DR"]:
@@ -230,8 +233,8 @@ def runMyBEM(
             outputs["ToutMinusTint"].append(T)
             outputs["maxToutVent"].append(lastMaxToutVent)
             outputs["minToutVent"].append(lastMinToutVent)
-            outputs["WSVent"].append(weather_data["Wind Speed"][i])
-            outputs["WDVent"].append(weather_data["Wind Direction"][i])
+            outputs["WSVent"].append(weather_data["wind_speed"][i])
+            outputs["WDVent"].append(weather_data["wind_direction"][i])
             n += 1
             if verbose and allVent == False:
                 print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
@@ -308,7 +311,7 @@ def runMyBEM(
                 plt.plot(times.index.values, d['radECalc'].front, color = colors[c], linestyle = linetypes[0])
                 plt.plot(times.index.values, d['radEApplied'].front, color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
-        plt.plot(times.index.values, build_sim.radG, label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
+        plt.plot(times.index.values, build_sim.hradG, label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.ylabel('Energy Flux [W/m^2]')
         plt.title("Roof Radiative Fluxes")
