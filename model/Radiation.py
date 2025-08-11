@@ -79,7 +79,7 @@ class Radiation:
                 if d["T_index"] == 999:
                     d["T_index"] = 0 # arbitrary for partition walls which should be symetrical
                     d["A"] *= 2
-                if self.solveType == "sky":
+                if "sky" in self.solveType:
                     d["epsilon_over_alpha"] = 0.9 / alpha #radiation from roof is emmitted to sky with emissivity of 0.9 (different than to other surfaces do to nature of atmospheric abosrption)
                 else:
                     d["epsilon_over_alpha"] = 1
@@ -94,7 +94,7 @@ class Radiation:
             #calc radiance resistance
             X = self.G.nodes[i]["X"]
             Y = self.G.nodes[i]["Y"]
-            if self.solveType == "sky":
+            if "sky" in self.solveType:
                 F = 1
             elif set([i, j]) == set(["RF", "FL"]):
                 if self.G.nodes[i]["A"] != self.G.nodes[j]["A"]:
