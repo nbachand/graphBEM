@@ -213,7 +213,7 @@ def runMyBEM(
             if day >= len(Tout_mins) - 1:
                 warnings.warn(f"Day {day} has no subsequent minimum temperature in data (length: {len(Tout_mins)}). Stopping ventilation checks.")
                 break
-        if T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold and Tout_mins[day+1] < ventThreshold and h > startVentHour and (T_old > 0 or allVent == True or h in otherVentHours):
+        if T <= 0 and i > iVentMin and Tints_avg[i] > coolingThreshold and Tout_mins.iloc[day+1] < ventThreshold and h > startVentHour and (T_old > 0 or allVent == True or h in otherVentHours):
             if n == 0: # indicating this is the first ventilation event of the night
                 lastMaxToutVent = lastMaxTout #making sure this is not reset during the building ventilation period
                 lastMinToutVent = lastMinTout #making sure this is not reset during the building ventilation period
@@ -233,8 +233,8 @@ def runMyBEM(
             outputs["ToutMinusTint"].append(T)
             outputs["maxToutVent"].append(lastMaxToutVent)
             outputs["minToutVent"].append(lastMinToutVent)
-            outputs["WSVent"].append(weather_data["wind_speed"][i])
-            outputs["WDVent"].append(weather_data["wind_direction"][i])
+            outputs["WSVent"].append(weather_data["wind_speed"].iloc[i])
+            outputs["WDVent"].append(weather_data["wind_direction"].iloc[i])
             n += 1
             if verbose and allVent == False:
                 print(f"Ventilation at {round(hVent[-1],1)} hours (time: {round(hVent[-1]%24, 1)})")
