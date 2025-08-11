@@ -52,7 +52,7 @@ class Radiation:
         if self.solveType == None:
             return
         self.G.add_nodes_from(surfaces)
-        if self.solveType == "sky":
+        if "sky" in self.solveType:
             self.G.add_node("sky")
             for surface in surfaces:
                 self.G.add_edge(surface, "sky")

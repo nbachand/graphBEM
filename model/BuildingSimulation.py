@@ -90,7 +90,13 @@ class BuildingSimulation():
             # Simulation logic
             # Solve Radiation
             for n, d in self.bG.G.nodes(data=True):
-                E = d["rad"].timeStep(solarGain = self.hradG[c])
+                if d["rad"].solveType == "skyHorizontal":
+                    solarGain = self.hradG[c]
+                elif d["rad"].solveType == "skyVertical":
+                    solarGain = self.vradG[c]
+                else:
+                    solarGain = 0
+                E = d["rad"].timeStep(solarGain = solarGain)
                 E = E.dropna()
                 for wall, EWall in E.items():
                     if wall == "sky":

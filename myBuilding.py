@@ -136,10 +136,13 @@ def runMyBEM(
         "As": As,
         "Ls": Ls,
     }
-    rad_kwargs_RF = {
-        "solveType": "sky"
-    }
 
+    rad_kwargs_RF = {
+        "solveType": "skyHorizontal",
+    }
+    rad_kwargs_OD = {
+        "solveType": "skyVertical",
+    }
     rad_kwargs_FL = {
         "solveType": "room"
     }
@@ -157,6 +160,7 @@ def runMyBEM(
         "rad_kwargs": {"solveType": None},
         })
     bG.updateNodes({"rad_kwargs": rad_kwargs_RF}, nodes=["RF"])
+    bG.updateNodes({"rad_kwargs": rad_kwargs_OD}, nodes=["OD"])
     bG.updateNodes({"rad_kwargs": rad_kwargs_FL}, nodes=["SS", "DR", "CV", "CR"])
 
     for r in ["CR", "DR"]:
@@ -286,6 +290,22 @@ def runMyBEM(
         plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.title("Exterior Wall Suface Temperatures")
+
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plotVentLines(times.index.values[i], allVent)
+        c = 0
+        for i, j, d, in build_sim.bG.G.edges(data=True):
+            if d['nodes'].checkSides(i, False) == "OD" or d['nodes'].checkSides(j, False) == "OD":
+                plt.plot(times.index.values, d['radECalc'].back, label=f'{i}-{j}-C', color = colors[c], linestyle = linetypes[0])
+                plt.plot(times.index.values, d['radEApplied'].back, label=f'{i}-{j}-A', color = colors[c], linestyle = linetypes[1])
+                plt.plot(times.index.values, d['radECalc'].front, color = colors[c], linestyle = linetypes[0])
+                plt.plot(times.index.values, d['radEApplied'].front, color = colors[c], linestyle = linetypes[1])
+                c = (c + 1) % len(colors)
+        plt.plot(times.index.values, build_sim.hradG, label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
+        tempPlotBasics()
+        plt.ylabel('Energy Flux [W/m^2]')
+        plt.title("Wall Radiative Fluxes")
 
         plt.figure(figsize=(10, 6))
         for i in iVent:
