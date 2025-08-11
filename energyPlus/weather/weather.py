@@ -163,6 +163,7 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
     }
 
     data = pd.DataFrame()
+    meta = pd.DataFrame()
     for zone, info in climate_zones.items():
         epw_file = f"./energyPlus/weather/CAClimateZones/{info['WeatherFile']}/{info['WeatherFile']}.epw"
         zoneData, zoneMeta = process_epw_file(epw_file, verbose=verbose)
@@ -171,14 +172,19 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
         zoneData["Longitude"] = info["Longitude"]
         zoneData["Elevation"] = info["Elevation"]
         zoneData["ClimateZone"] = zone
+        hrad = getShortwaveRadiation(zoneData, zoneMeta, tilts=[0], azimuths=[0])["poa_global"]
+        hrad = hrad + getLongwaveRadiation(zoneData, surface_tilt=0, emissivity=0.9)
+        zoneData["Horizontal Sky Radiation"] = hrad
+
+        vrad = getShortwaveRadiation(zoneData, zoneMeta, tilts=[90], azimuths=range(0, 360, 5))["poa_global"]
+        vrad = vrad + getLongwaveRadiation(zoneData, surface_tilt=90, emissivity=0.9)
+        zoneData["Vertical Sky Radiation"] = vrad
         data = pd.concat([data, zoneData], axis="index")
-    
-    data["Horizontal Sky Radiation"] = getRadData(data, zoneMeta, tilts=[0], azimuths=[0])["poa_global"]
-    data["Vertical Sky Radiation"] = getRadData(data, zoneMeta, tilts=[90], azimuths=range(0, 360, 5))["poa_global"]
+        meta = pd.concat([meta, pd.Series(zoneMeta)], axis="columns")
 
-    return data, zoneMeta, climate_zones
+    return data, meta.T, climate_zones
 
-def getRadData(data, meta, tilts=[0], azimuths=[0, 90, 180, 270]):
+def getShortwaveRadiation(data, meta, tilts=[0], azimuths=[0, 90, 180, 270]):
     solpos = pvlib.solarposition.get_solarposition(
         time=data.index,
         latitude=meta['latitude'],
@@ -210,6 +216,31 @@ def getRadData(data, meta, tilts=[0], azimuths=[0, 90, 180, 270]):
     poa_avg = poa_all.groupby(level=0).mean()
 
     return poa_avg
+
+def getLongwaveRadiation(data, surface_tilt, emissivity=0.9):
+
+    air_temp_K = data['temp_air'] + 273.15
+    ghi_infrared = data['ghi_infrared']
+
+    # Stefan-Boltzmann constant (W/m^2/K^4)
+    sigma = 5.67e-8
+    if surface_tilt < 0 or surface_tilt > 90:
+        raise ValueError("Surface tilt must be between 0 and 90 degrees.")
+
+    # Convert tilt to radians
+    tilt_rad = np.radians(surface_tilt)
+
+    # Calculate view factors
+    Rdome = (1 + np.cos(tilt_rad)) / 2   # Sky view factor
+    Rground = 1 - Rdome                  # Ground/obstruction view factor
+
+    # Longwave radiation from the ground (assumes ground temperature = air temperature)
+    longwave_ground = sigma * emissivity * air_temp_K**4
+
+    # Total longwave radiation incident on the surface
+    total_longwave_radiation = Rdome * ghi_infrared + Rground * longwave_ground
+
+    return pd.Series(total_longwave_radiation, index=ghi_infrared.index, name='longwave_radiation')
 
 def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThreshold=24, coolingDegBase=21, ventThreshold=None, keep = "VDDs"):
     # Constants
