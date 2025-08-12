@@ -66,9 +66,9 @@ class Radiation:
         # assign properties to the radiation graph
         for n, d in self.G.nodes(data=True):
             if n == "sky":
-                alpha = 1 # This is not the true absorptivity (using W to specify sky intensity) but ignores reflected radiation
-                d["A"] = 1 # doesn't matter sice epsilon = 1
-                d["alpha_over_epsilon"] = 1
+                alpha = 1 # This is not the true absorptivity (using W to specify sky intensity) but ignores reflected radiation (e.g., the sky doesnt reflect)
+                d["A"] = 1 # doesn't matter since epsilon = 1
+                # d["epsilon_over_alpha"] = 1 # dont think this is used
             else:
                 wall = self.roomNode[n]["wall"]
                 alpha = wall.absorptivity # opaque, diffuse, gray surface
@@ -79,7 +79,7 @@ class Radiation:
                 if d["T_index"] == 999:
                     d["T_index"] = 0 # arbitrary for partition walls which should be symetrical
                     d["A"] *= 2
-                if "sky" in self.solveType:
+                if self.solveType == "skyHorizontal": # assuming this only for roof not vertical walls where more view factor is ground
                     d["epsilon_over_alpha"] = 0.9 / alpha #radiation from roof is emmitted to sky with emissivity of 0.9 (different than to other surfaces do to nature of atmospheric abosrption)
                 else:
                     d["epsilon_over_alpha"] = 1
