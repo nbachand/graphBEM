@@ -46,7 +46,7 @@ def process_epw_file(file_path, verbose=False):
     # Return the processed information
     return data, meta
     
-def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
+def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False, hR_obs=0.0, vR_obs=0.0):
     climate_zones = {
         1: {
             "City": "Arcata",
@@ -173,11 +173,11 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
         zoneData["Elevation"] = info["Elevation"]
         zoneData["ClimateZone"] = zone
         hrad = getShortwaveRadiation(zoneData, zoneMeta, tilts=[0], azimuths=[0])["poa_global"]
-        hrad = hrad + getLongwaveRadiation(zoneData, surface_tilt=0, emissivity=0.9)
+        hrad = hrad + getLongwaveRadiation(zoneData, surface_tilt=0, R_obs=hR_obs)
         zoneData["Horizontal Sky Radiation"] = hrad
 
         vrad = getShortwaveRadiation(zoneData, zoneMeta, tilts=[90], azimuths=range(0, 360, 5))["poa_global"]
-        vrad = vrad + getLongwaveRadiation(zoneData, surface_tilt=90, emissivity=0.9)
+        vrad = vrad + getLongwaveRadiation(zoneData, surface_tilt=90, R_obs=vR_obs)
         zoneData["Vertical Sky Radiation"] = vrad
         data = pd.concat([data, zoneData], axis="index")
         meta = pd.concat([meta, pd.Series(zoneMeta)], axis="columns")
@@ -217,7 +217,7 @@ def getShortwaveRadiation(data, meta, tilts=[0], azimuths=[0, 90, 180, 270]):
 
     return poa_avg
 
-def getLongwaveRadiation(data, surface_tilt, emissivity=0.9):
+def getLongwaveRadiation(data, surface_tilt, R_obs=0):
 
     air_temp_K = data['temp_air'] + 273.15
     ghi_infrared = data['ghi_infrared']
@@ -231,11 +231,14 @@ def getLongwaveRadiation(data, surface_tilt, emissivity=0.9):
     tilt_rad = np.radians(surface_tilt)
 
     # Calculate view factors
-    Rdome = (1 + np.cos(tilt_rad)) / 2   # Sky view factor
-    Rground = 1 - Rdome                  # Ground/obstruction view factor
+    Rdome = (1 + np.cos(tilt_rad)) / 2 - R_obs   # Sky view factor
+    Rground = 1 - Rdome                # Ground/obstruction view factor
+
+    if Rdome < 0 or Rground < 0:
+        raise ValueError(f"Invalid view factors calculated: Rdome = {Rdome}, Rground = {Rground}")
 
     # Longwave radiation from the ground (assumes ground temperature = air temperature)
-    longwave_ground = sigma * emissivity * air_temp_K**4
+    longwave_ground = sigma * air_temp_K**4 # emissivity is handled in the radiation network, so adding it here double-counts it
 
     # Total longwave radiation incident on the surface
     total_longwave_radiation = Rdome * ghi_infrared + Rground * longwave_ground
