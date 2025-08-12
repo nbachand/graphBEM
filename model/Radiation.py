@@ -80,7 +80,9 @@ class Radiation:
                     d["T_index"] = 0 # arbitrary for partition walls which should be symetrical
                     d["A"] *= 2
                 if self.solveType == "skyHorizontal": # assuming this only for roof not vertical walls where more view factor is ground
-                    d["epsilon_over_alpha"] = 0.9 / alpha #radiation from roof is emmitted to sky with emissivity of 0.9 (different than to other surfaces do to nature of atmospheric abosrption)
+                    d["epsilon_over_alpha"] = 0.9 / alpha 
+                elif self.solveType == "skyVertical": # assuming this only for vertical walls not roof where more view factor is sky
+                    d["epsilon_over_alpha"] =(1 + 0.9 / alpha) / 2 # approximating about half of radiation to sky half to ground
                 else:
                     d["epsilon_over_alpha"] = 1
             d["boundaryResistance"] = (1 - alpha) / (alpha * d["A"])
