@@ -165,7 +165,7 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
     chosenMaterial = []
     floorTempAdjustment = []
     hInterior = []
-    hExterior = []
+    hExterior_nat = []
     alphaRoof = []
     windSpeed = []
     wallRoughness = []
@@ -181,10 +181,10 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
         floorTempAdjustment.append(random.uniform(-3.5, -5))
         hInterior.append(random.uniform(1, 3))
         alphaRoof.append(random.uniform(0.6, 0.9))
-        windSpeed.append(random.uniform(0, 6))
+        # windSpeed.append(random.uniform(0, 6))
         wallRoughness.append(random.uniform(1.11, 2.17))
-        hExterior.append(convectionDOE2(random.uniform(1, 3), windSpeed[i], wallRoughness[i])) #using DOE-2 to calculate this
-
+        hExterior_nat.append(random.uniform(1, 3)) #using DOE-2 to calculate this
+        
         weatherProperties, dataSampled = sampleVentWeather(data, climate_zones, runDays, dt=dt, plot=False)
         weatherPropertiesRecord.append(weatherProperties)
         dataSampled = dataSampled.infer_objects(copy=False)
@@ -192,7 +192,7 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
         chosenData.append(dataSampled)
 
     print("Generated BEM inputs")
-    inputsMC = [chosenData, chosenMaterial, floorTempAdjustment, hInterior, hExterior, alphaRoof]
+    inputsMC = [chosenData, chosenMaterial, floorTempAdjustment, hInterior, hExterior_nat, wallRoughness, alphaRoof]
 
     # parallel = False
     realizationOutputs = runMC(inputsMC, parallel = parallel)
@@ -204,11 +204,10 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
             key = time.strftime("%Y%m%d-%H%M%S")
         else:
             key = resultsKey
-        inputsMCdf = pd.DataFrame(inputsMC[2:], index = ["floorTempAdjustment", "hInterior", "hExterior", "alphaRoof"]).T
+        inputsMCdf = pd.DataFrame(inputsMC[2:], index = ["floorTempAdjustment", "hInterior", "hExterior_nat", "wallRoughness", "alphaRoof"]).T
         inputsMCdf["weatherProperties"] = weatherPropertiesRecord
         inputsMCdf["material_type"] = materialTypesRecord
-        inputsMCdf["windSpeed"] = windSpeed
-        inputsMCdf["wallRoughness"] = wallRoughness
+        # inputsMCdf["windSpeed"] = windSpeed
         inputsMCdf.to_csv(f"./resultsMC/inputs_{key}.csv")
 
         dfOutputs = pd.DataFrame(realizationOutputs)

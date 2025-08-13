@@ -1,13 +1,13 @@
 import numpy as np
 from model.utils import *
 
-def convectionDOE2(h_nat, V_10, R_f):
+def convectionDOE2(h_nat, V, R_f):
     """
     Calculate the convection coefficient using the DOE-2 method
     """
     alpha = np.mean([2.38, 2.86])
     beta = np.mean([0.617, 0.89])
-    return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V_10**beta)**2)**0.5
+    return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V**beta)**2)**0.5
     
 def processMaterials(material_df, n, dt = None, verbose = True):
     """
@@ -51,7 +51,7 @@ def processMaterials(material_df, n, dt = None, verbose = True):
 class WallSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["X", "Y", "material_df", "h", "absorptivity", "n", "delt"])
+        expected_kwards = set(["X", "Y", "material_df", "h", "roughness", "absorptivity", "n", "delt"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         # Constants
@@ -132,9 +132,11 @@ class WallSimulation:
 
         self.Erad = WallSides(0, 0) #radiative heat flux at front (area averaged)
 
-    def timeStep(self, TintF, TintB):
-        TintRadF = TintF + self.Erad.front / self.h.front
-        TintRadB = TintB + self.Erad.back / self.h.back
+    def timeStep(self, TintF, TintB, windSpeed=0):
+        hfront = convectionDOE2(self.h.front, windSpeed, self.roughness.front)
+        hback = convectionDOE2(self.h.back, windSpeed, self.roughness.back)
+        TintRadF = TintF + self.Erad.front / hfront
+        TintRadB = TintB + self.Erad.back / hback
         self.b[0] = self.lambda_vals[0] * TintRadF / (1 + self.lambda_bound.front)
         self.b[-1] = self.lambda_vals[-1] * TintRadB / (1 + self.lambda_bound.back)
         self.T = np.dot(self.A, self.T) + self.b
@@ -142,8 +144,8 @@ class WallSimulation:
         self.T_prof = self.getWallProfile(TintRadF, TintRadB)
 
         Ef = WallSides()
-        Ef.front = self.Af * (self.T_prof[0] - TintF) * self.h.front
-        Ef.back = self.Af * (self.T_prof[-1] - TintB) * self.h.back
+        Ef.front = self.Af * (self.T_prof[0] - TintF) * hfront
+        Ef.back = self.Af * (self.T_prof[-1] - TintB) * hback
         return Ef
 
     def getWallProfile(self, TintF, TintB):

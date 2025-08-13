@@ -12,7 +12,7 @@ from model import \
 class BuildingSimulation():
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["delt", "simLength", "Tout", "radG", "Tfloor"])
+        expected_kwards = set(["delt", "simLength", "Tout", "Tfloor", "windSpeed", "radG"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         self.t = 0 #time (seconds)
@@ -21,6 +21,8 @@ class BuildingSimulation():
         self.hours = self.times / 60 / 60
         self.N = len(self.times)
         self.Tout = getEquivalentTimeSeries(self.Tout, self.times)
+        for node in self.windSpeed:
+            self.windSpeed[node] = getEquivalentTimeSeries(self.windSpeed[node], self.times)
         for node in self.radG:
             self.radG[node] = getEquivalentTimeSeries(self.radG[node], self.times)
         self.radDamping =  self.delt / (1 + self.delt)# 0 damping factor for radiation
@@ -116,7 +118,12 @@ class BuildingSimulation():
 
             # Solve Walls
             for i, j, d in self.bG.G.edges(data=True):
-                Ef = d["wall"].timeStep(self.bG.G.nodes[d["nodes"].front]["room"].Tint, self.bG.G.nodes[d["nodes"].back]["room"].Tint)
+                if i in self.windSpeed:
+                    windSpeed = self.windSpeed[i][c]
+                elif j in self.windSpeed:
+                    windSpeed = self.windSpeed[j][c]
+                else: windSpeed = 0
+                Ef = d["wall"].timeStep(self.bG.G.nodes[d["nodes"].front]["room"].Tint, self.bG.G.nodes[d["nodes"].back]["room"].Tint, windSpeed=windSpeed)
                 self.bG.G.nodes[d["nodes"].front]["Ef"] += Ef.front * d["weight"]
                 self.bG.G.nodes[d["nodes"].back]["Ef"] += Ef.back * d["weight"]
                 d["T_profs"][:,c] = d["wall"].T_prof

@@ -1,10 +1,11 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from model import BuildingSimulation as bs, BuildingGraph as bg
-from model.WallSimulation import processMaterials
+from model.WallSimulation import processMaterials, convectionDOE2
 from model.utils import *
 import matplotlib.colors as mcolors
 import warnings
+from energyPlus.weather.weather import adjustWindSpeed
 
 def tempPlotBasics():
     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
@@ -28,7 +29,8 @@ def runMyBEM(
         materials,
         floorTempAdjustment,
         hInterior,
-        hExterior,
+        hExterior_nat,
+        wallRoughness,
         alphaRoof,
         alphaWalls = 0.7,
         allVent = False,
@@ -62,6 +64,10 @@ def runMyBEM(
     dt = times.iloc[1]
     Touts = weather_data["temp_air"].values + 273.15
     Tout_mins = weather_data.resample('D')['temp_air'].min()  + 273.15
+    wind_speed = weather_data["wind_speed"].values
+    latitude = weather_data['Latitude'].iloc[0]
+    wind_speed_RF = adjustWindSpeed(wind_speed, latitude, z0_new=0.3, z=4.5)
+    wind_speed_OD = adjustWindSpeed(wind_speed, latitude, z0_new=0.3, z=1.5, wind_scaling=0.5)
 
     hrad = weather_data["Horizontal Shortwave Radiation"].values 
     hrad += weather_data["Horizontal Sky Longwave Radiation"].values
@@ -75,19 +81,28 @@ def runMyBEM(
     if makePlots:
         plt.figure(figsize=(10, 6))
 
-        plt.subplot(2, 1, 1)
+        plt.subplot(3, 1, 1)
         plt.plot(times.index.values, Touts, label='Temperature (°K)')
         plt.title('Daily Temperature Variation')
         plt.xlabel('Time')
         plt.ylabel('Temperature (°C)')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
-        plt.subplot(2, 1, 2)
+        plt.subplot(3, 1, 2)
         plt.plot(times.index.values, hrad, label='Horizontal Radiation (W/m^2)', color='orange')
         plt.plot(times.index.values, vrad, label='Vertical Radiation (W/m^2)', color='blue')
         plt.title('Daily Radiation Variation')
         plt.xlabel('Time')
         plt.ylabel('Radiation (W/m^2)')
+        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+        plt.subplot(3, 1, 3)
+        plt.plot(times.index.values, wind_speed, label='Wind Speed (m/s)', color='red')
+        plt.plot(times.index.values, wind_speed_OD, label='Wind Speed OD (m/s)', color='green')
+        plt.plot(times.index.values, wind_speed_RF, label='Wind Speed RF (m/s)', color='purple')
+        plt.title('Wind Speeds')
+        plt.xlabel('Time')
+        plt.ylabel('Wind Speed (m/s)')
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
         plt.tight_layout()
@@ -110,10 +125,6 @@ def runMyBEM(
     if makePlots:
         bG.draw()
 
-    # Window dimmensions
-    H = 1
-    W = 1
-
     alphas = []
     As = []
     Ls = []
@@ -123,15 +134,19 @@ def runMyBEM(
         "simLength": times.values[-1] - times.values[0],
         "Tout" : Touts,
         "Tfloor": np.mean(Touts) + floorTempAdjustment,
+        "windSpeed": {
+            'RF': wind_speed_RF,
+            'OD': wind_speed_OD
+        },
         "radG": {
             'RF': hrad,
             'OD': vrad
         }
     }
-    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "absorptivity" : alphaWalls, "n": n}
-    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior), "absorptivity" : alphaWalls,  "n": n}
-    wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, 4 * hExterior), "absorptivity" : alphaRoof, "n": n}
-    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "absorptivity" : alphaWalls, "n": nFloor}
+    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "roughness": WallSides(0,0), "absorptivity" : alphaWalls, "n": n}
+    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior_nat), "roughness": WallSides(0,wallRoughness), "absorptivity" : alphaWalls,  "n": n}
+    wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, hExterior_nat), "roughness": WallSides(0,wallRoughness), "absorptivity" : alphaRoof, "n": n}
+    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "roughness": WallSides(0,0), "absorptivity" : alphaWalls, "n": nFloor}
 
     room_kwargs = {
         "T0": np.mean(Touts), #Touts[0],
