@@ -30,6 +30,7 @@ def runMyBEM(
         hInterior,
         hExterior,
         alphaRoof,
+        alphaWalls = 0.7,
         allVent = False,
         startVentHour = 16,
         otherVentHours = [23],
@@ -38,7 +39,8 @@ def runMyBEM(
         coolingReference = 273.15 + 21, # 21 C or 70 F
         verbose = False,
         makePlots = False):
-    
+
+    epsilonSky = 0.9
     outputs = {}
     wallMaterial = materials["wall"]
     partitionMaterial =  materials["partition"]
@@ -60,8 +62,14 @@ def runMyBEM(
     dt = times.iloc[1]
     Touts = weather_data["temp_air"].values + 273.15
     Tout_mins = weather_data.resample('D')['temp_air'].min()  + 273.15
-    hrad = weather_data["Horizontal Sky Radiation"].values
-    vrad = weather_data["Vertical Sky Radiation"].values
+
+    hrad = weather_data["Horizontal Shortwave Radiation"].values 
+    hrad += weather_data["Horizontal Sky Longwave Radiation"].values
+    hrad += weather_data["Horizontal Surfaces Longwave Radiation"].values * epsilonSky / alphaRoof #adjusted because treated as sky in rad calc
+
+    vrad = weather_data["Vertical Shortwave Radiation"].values 
+    vrad += weather_data["Vertical Sky Longwave Radiation"].values
+    vrad += weather_data["Vertical Surfaces Longwave Radiation"].values * epsilonSky / alphaWalls #adjusted because treated as sky in rad calc
 
     # Plotting the weather data
     if makePlots:
@@ -120,10 +128,10 @@ def runMyBEM(
             'OD': vrad
         }
     }
-    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "absorptivity" : 0.7, "n": n}
-    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior), "absorptivity" : 0.7,  "n": n}
+    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "absorptivity" : alphaWalls, "n": n}
+    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior), "absorptivity" : alphaWalls,  "n": n}
     wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, 4 * hExterior), "absorptivity" : alphaRoof, "n": n}
-    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "absorptivity" : 0.7, "n": nFloor}
+    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "absorptivity" : alphaWalls, "n": nFloor}
 
     room_kwargs = {
         "T0": np.mean(Touts), #Touts[0],

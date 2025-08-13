@@ -4,6 +4,8 @@ import networkx as nx
 from model.utils import *
 from model.BuildingGraph import draw
 
+epsilonSky = 0.9
+
 def getVFAlignedRectangles(X, Y, L):
     Xbar = X / L
     Ybar = Y / L
@@ -79,8 +81,8 @@ class Radiation:
                 if d["T_index"] == 999:
                     d["T_index"] = 0 # arbitrary for partition walls which should be symetrical
                     d["A"] *= 2
-                if self.solveType == "sky": # assuming this only for roof not vertical walls where more view factor is ground
-                    d["epsilon_over_alpha"] = 0.9 / alpha 
+                if self.solveType == "sky":
+                    d["epsilon_over_alpha"] = epsilonSky / alpha # emmisivity to sky is ~0.9
                 else:
                     d["epsilon_over_alpha"] = 1
             d["boundaryResistance"] = (1 - alpha) / (alpha * d["A"])

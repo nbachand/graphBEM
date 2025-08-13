@@ -172,13 +172,12 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False, hR_ob
         zoneData["Longitude"] = info["Longitude"]
         zoneData["Elevation"] = info["Elevation"]
         zoneData["ClimateZone"] = zone
-        hrad = getShortwaveRadiation(zoneData, zoneMeta, tilts=[0], azimuths=[0])["poa_global"]
-        hrad = hrad + getLongwaveRadiation(zoneData, surface_tilt=0, R_obs=hR_obs)
-        zoneData["Horizontal Sky Radiation"] = hrad
+        
+        zoneData["Horizontal Shortwave Radiation"] = getShortwaveRadiation(zoneData, zoneMeta, tilts=[0], azimuths=[0])["poa_global"]
+        zoneData["Horizontal Sky Longwave Radiation"], zoneData["Horizontal Surfaces Longwave Radiation"] = getLongwaveRadiation(zoneData, surface_tilt=0, R_obs=hR_obs)
+        zoneData["Vertical Shortwave Radiation"] = getShortwaveRadiation(zoneData, zoneMeta, tilts=[90], azimuths=range(0, 360, 5))["poa_global"]
+        zoneData["Vertical Sky Longwave Radiation"], zoneData["Vertical Surfaces Longwave Radiation"] = getLongwaveRadiation(zoneData, surface_tilt=90, R_obs=vR_obs)
 
-        vrad = getShortwaveRadiation(zoneData, zoneMeta, tilts=[90], azimuths=range(0, 360, 5))["poa_global"]
-        vrad = vrad + getLongwaveRadiation(zoneData, surface_tilt=90, R_obs=vR_obs)
-        zoneData["Vertical Sky Radiation"] = vrad
         data = pd.concat([data, zoneData], axis="index")
         meta = pd.concat([meta, pd.Series(zoneMeta)], axis="columns")
 
@@ -241,9 +240,13 @@ def getLongwaveRadiation(data, surface_tilt, R_obs=0):
     longwave_ground = sigma * air_temp_K**4 # emissivity is handled in the radiation network, so adding it here double-counts it
 
     # Total longwave radiation incident on the surface
-    total_longwave_radiation = Rdome * ghi_infrared + Rground * longwave_ground
+    sky_longwave_radiation = Rdome * ghi_infrared
+    surfaces_longwave_radiation = Rground * longwave_ground
 
-    return pd.Series(total_longwave_radiation, index=ghi_infrared.index, name='longwave_radiation')
+    sky_longwave_radiation = pd.Series(sky_longwave_radiation, index=data.index, name='sky_longwave_radiation')
+    surfaces_longwave_radiation = pd.Series(surfaces_longwave_radiation, index=data.index, name='surfaces_longwave_radiation')
+
+    return sky_longwave_radiation, surfaces_longwave_radiation
 
 def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThreshold=24, coolingDegBase=21, ventThreshold=None, keep = "VDDs"):
     # Constants
