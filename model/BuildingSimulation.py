@@ -12,7 +12,7 @@ from model import \
 class BuildingSimulation():
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["delt", "simLength", "Tout", "hradG", "vradG", "Tfloor"])
+        expected_kwards = set(["delt", "simLength", "Tout", "radG", "Tfloor"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         self.t = 0 #time (seconds)
@@ -21,8 +21,8 @@ class BuildingSimulation():
         self.hours = self.times / 60 / 60
         self.N = len(self.times)
         self.Tout = getEquivalentTimeSeries(self.Tout, self.times)
-        self.hradG = getEquivalentTimeSeries(self.hradG, self.times)
-        self.vradG = getEquivalentTimeSeries(self.vradG, self.times)
+        for node in self.radG:
+            self.radG[node] = getEquivalentTimeSeries(self.radG[node], self.times)
         self.radDamping =  self.delt / (1 + self.delt)# 0 damping factor for radiation
 
     def initialize(self, bG:bg.BuildingGraph, verbose = False):
@@ -90,10 +90,8 @@ class BuildingSimulation():
             # Simulation logic
             # Solve Radiation
             for n, d in self.bG.G.nodes(data=True):
-                if d["rad"].solveType == "skyHorizontal":
-                    solarGain = self.hradG[c]
-                elif d["rad"].solveType == "skyVertical":
-                    solarGain = self.vradG[c]
+                if d["rad"].solveType == "sky":
+                    solarGain = self.radG[n][c]
                 else:
                     solarGain = 0
                 E = d["rad"].timeStep(solarGain = solarGain)

@@ -52,7 +52,7 @@ class Radiation:
         if self.solveType == None:
             return
         self.G.add_nodes_from(surfaces)
-        if "sky" in self.solveType:
+        if self.solveType == "sky":
             self.G.add_node("sky")
             for surface in surfaces:
                 self.G.add_edge(surface, "sky")
@@ -79,10 +79,8 @@ class Radiation:
                 if d["T_index"] == 999:
                     d["T_index"] = 0 # arbitrary for partition walls which should be symetrical
                     d["A"] *= 2
-                if self.solveType == "skyHorizontal": # assuming this only for roof not vertical walls where more view factor is ground
+                if self.solveType == "sky": # assuming this only for roof not vertical walls where more view factor is ground
                     d["epsilon_over_alpha"] = 0.9 / alpha 
-                elif self.solveType == "skyVertical": # assuming this only for vertical walls not roof where more view factor is sky
-                    d["epsilon_over_alpha"] =(1 + 0.9 / alpha) / 2 # approximating about half of radiation to sky half to ground
                 else:
                     d["epsilon_over_alpha"] = 1
             d["boundaryResistance"] = (1 - alpha) / (alpha * d["A"])
@@ -96,7 +94,7 @@ class Radiation:
             #calc radiance resistance
             X = self.G.nodes[i]["X"]
             Y = self.G.nodes[i]["Y"]
-            if "sky" in self.solveType:
+            if self.solveType == "sky":
                 F = 1
             elif set([i, j]) == set(["RF", "FL"]):
                 if self.G.nodes[i]["A"] != self.G.nodes[j]["A"]:

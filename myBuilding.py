@@ -114,9 +114,11 @@ def runMyBEM(
         "delt": times.values[1] - times.values[0],
         "simLength": times.values[-1] - times.values[0],
         "Tout" : Touts,
-        "hradG": hrad,
-        "vradG": vrad,
         "Tfloor": np.mean(Touts) + floorTempAdjustment,
+        "radG": {
+            'RF': hrad,
+            'OD': vrad
+        }
     }
     wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "absorptivity" : 0.7, "n": n}
     wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior), "absorptivity" : 0.7,  "n": n}
@@ -138,10 +140,10 @@ def runMyBEM(
     }
 
     rad_kwargs_RF = {
-        "solveType": "skyHorizontal",
+        "solveType": "sky",
     }
     rad_kwargs_OD = {
-        "solveType": "skyVertical",
+        "solveType": "sky",
     }
     rad_kwargs_FL = {
         "solveType": "room"
@@ -302,7 +304,7 @@ def runMyBEM(
                 plt.plot(times.index.values, d['radECalc'].front, color = colors[c], linestyle = linetypes[0])
                 plt.plot(times.index.values, d['radEApplied'].front, color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
-        plt.plot(times.index.values, build_sim.hradG, label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
+        plt.plot(times.index.values, build_sim.radG["RF"], label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.ylabel('Energy Flux [W/m^2]')
         plt.title("Wall Radiative Fluxes")
@@ -331,7 +333,7 @@ def runMyBEM(
                 plt.plot(times.index.values, d['radECalc'].front, color = colors[c], linestyle = linetypes[0])
                 plt.plot(times.index.values, d['radEApplied'].front, color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
-        plt.plot(times.index.values, build_sim.hradG, label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
+        plt.plot(times.index.values, build_sim.radG["RF"], label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.ylabel('Energy Flux [W/m^2]')
         plt.title("Roof Radiative Fluxes")
