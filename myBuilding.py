@@ -132,8 +132,11 @@ def runMyBEM(
     sim_kwargs = {
         "delt": times.values[1] - times.values[0],
         "simLength": times.values[-1] - times.values[0],
-        "Tout" : Touts,
-        "Tfloor": np.mean(Touts) + floorTempAdjustment,
+        "Tbound":{
+            "OD": Touts,
+            "RF": Touts,
+            "FL": np.mean(Touts) + floorTempAdjustment
+        },
         "windSpeed": {
             'RF': wind_speed_RF,
             'OD': wind_speed_OD
@@ -207,7 +210,7 @@ def runMyBEM(
                 plt.plot(times.index.values, d['Tints'], label=n)
     Tints_avg = np.mean(np.array(Tints_avg), axis = 0)
 
-    Tout_minus_in = build_sim.Tout - Tints_avg
+    Tout_minus_in = build_sim.Tbound["OD"] - Tints_avg
 
     hVent = []
     iVent = []
@@ -231,11 +234,11 @@ def runMyBEM(
     for i, T in enumerate(Tout_minus_in):
         h = times.index.hour[i]
         if h == 0:
-            lastMaxTout = build_sim.Tout[i]
-            lastMinTout = build_sim.Tout[i]
+            lastMaxTout = build_sim.Tbound["OD"][i]
+            lastMinTout = build_sim.Tbound["OD"][i]
         else:
-            lastMaxTout = max(build_sim.Tout[i], lastMaxTout)
-            lastMinTout = min(build_sim.Tout[i], lastMinTout)
+            lastMaxTout = max(build_sim.Tbound["OD"][i], lastMaxTout)
+            lastMinTout = min(build_sim.Tbound["OD"][i], lastMinTout)
         if h == startVentHour:
             n = 0 # reset the ventilation number counter
             day = times.index.day[i] - times.index.day[0] #reset the day counter to avoid changing overnight
@@ -258,7 +261,7 @@ def runMyBEM(
             outputs["nVent"].append(n)
             outputs["hVent"].append(h)
             outputs["Tint"].append(Tints_avg[i])
-            outputs["Tout"].append(build_sim.Tout[i])
+            outputs["Tout"].append(build_sim.Tbound["OD"][i])
             outputs["ToutMinusTint"].append(T)
             outputs["maxToutVent"].append(lastMaxToutVent)
             outputs["minToutVent"].append(lastMinToutVent)
@@ -284,7 +287,7 @@ def runMyBEM(
                 ])
         plt.axhline(coolingReference, linestyle = '--', color = '.8')
         plt.plot(times.index.values, Tints_avg, label="Average Interior Temperature", color = 'k', linestyle = '--')
-        plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
+        plt.plot(times.index.values, build_sim.Tbound["OD"], label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.title("Room Temperatures")
 
@@ -299,7 +302,7 @@ def runMyBEM(
                 plt.plot(times.index.values, d['T_profs'][0, :], label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[0])
                 plt.plot(times.index.values, d['T_profs'][-1, :], label=f'{i}-{j}-B', color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
-        plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
+        plt.plot(times.index.values, build_sim.Tbound["OD"], label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.title("Interior Wall Suface Temperatures")
 
@@ -312,7 +315,7 @@ def runMyBEM(
                 plt.plot(times.index.values, d['T_profs'][0, :], label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[0])
                 plt.plot(times.index.values, d['T_profs'][-1, :], label=f'{i}-{j}-B', color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
-        plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
+        plt.plot(times.index.values, build_sim.Tbound["OD"], label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.title("Exterior Wall Suface Temperatures")
 
@@ -341,7 +344,7 @@ def runMyBEM(
                 plt.plot(times.index.values, d['T_profs'][0, :], label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[0])
                 plt.plot(times.index.values, d['T_profs'][-1, :], label=f'{i}-{j}-B', color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
-        plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
+        plt.plot(times.index.values, build_sim.Tbound["OD"], label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.title("Roof Suface Temperatures")
 
@@ -370,7 +373,7 @@ def runMyBEM(
                 plt.plot(times.index.values, d['T_profs'][0, :], label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[0])
                 plt.plot(times.index.values, d['T_profs'][-1, :], label=f'{i}-{j}-B', color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
-        plt.plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
+        plt.plot(times.index.values, build_sim.Tbound["OD"], label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.title("Floor Suface Temperatures")
 
@@ -379,7 +382,7 @@ def runMyBEM(
             for j in range(3):
                 if allVent == False:
                     axs[j].axvline(times.index.values[i], linestyle = '-.', color = '.8')
-                    axs[j].plot(times.index.values, build_sim.Tout, label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
+                    axs[j].plot(times.index.values, build_sim.Tbound["OD"], label="Outdoor Temperature", color = 'k', linestyle = (0, (1, 5)))
         for i, j, d in build_sim.bG.G.edges(data=True):
             center = int(len(d['T_profs'][:, 0]) / 2)
             if d['nodes'].checkSides(i, False) in interiorRooms and d['nodes'].checkSides(j, False) in interiorRooms:
@@ -480,7 +483,7 @@ def runMyBEM(
         if n in interiorRooms:
             ceiling_temp = build_sim.bG.G[n]["RF"]["T_profs"][0, :]
             floor_temp = build_sim.bG.G[n]["FL"]["T_profs"][0, :]
-            Tout_floor_diff = build_sim.Tout - floor_temp
+            Tout_floor_diff = build_sim.Tbound["OD"] - floor_temp
             diff = ceiling_temp - floor_temp
             delVent.append(diff[iVent])
             delOutFloor.append(Tout_floor_diff[iVent])

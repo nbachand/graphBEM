@@ -78,7 +78,8 @@ class WallSimulation:
 
         self.material_df = material_df
 
-    def initialize(self, delt, TfF, TfB, verbose = False):
+    def initialize(self, delt, TfF, TfB, windSpeed=0, verbose = False):
+        self.windSpeed = windSpeed
         # Scaling factors
         self.lambda_vals = (delt / self.delx**2) * self.kfs / (self.rhofs * self.Cfs)
         if verbose:
@@ -132,9 +133,9 @@ class WallSimulation:
 
         self.Erad = WallSides(0, 0) #radiative heat flux at front (area averaged)
 
-    def timeStep(self, TintF, TintB, windSpeed=0):
-        hfront = convectionDOE2(self.h.front, windSpeed, self.roughness.front)
-        hback = convectionDOE2(self.h.back, windSpeed, self.roughness.back)
+    def timeStep(self, TintF, TintB):
+        hfront = convectionDOE2(self.h.front, self.windSpeed, self.roughness.front)
+        hback = convectionDOE2(self.h.back, self.windSpeed, self.roughness.back)
         TintRadF = TintF + self.Erad.front / hfront
         TintRadB = TintB + self.Erad.back / hback
         self.b[0] = self.lambda_vals[0] * TintRadF / (1 + self.lambda_bound.front)

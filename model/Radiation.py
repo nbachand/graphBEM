@@ -46,7 +46,8 @@ class Radiation:
         self.sigma = 5.67e-8
         self.storyHeight = 3
 
-    def initialize(self, roomNode:nx.classes.coreviews.AtlasView, drawGraphs = False):
+    def initialize(self, roomNode:nx.classes.coreviews.AtlasView, solarGain=0, drawGraphs = False):
+        self.solarGain = solarGain
         self.roomNode = dict(roomNode)
         surfaces = list(self.roomNode.keys())
         self.G = nx.Graph()
@@ -113,7 +114,7 @@ class Radiation:
             draw(self.G, weight = "radianceResistance")
         self.A = graphToSysEqnKCL(self.G)
 
-    def timeStep(self, solarGain = 0):
+    def timeStep(self):
         if self.solveType == None:
             return pd.Series()
         bR = pd.Series(0.0, index = self.A.index)
@@ -121,7 +122,7 @@ class Radiation:
         A = pd.Series(0.0, index = self.A.index)
         for n, d in self.G.nodes(data=True):
             if n == "sky":
-                Eb[n] = solarGain
+                Eb[n] = self.solarGain
                 A[n] = 1
             else: 
                 wall = self.roomNode[n]["wall"]
