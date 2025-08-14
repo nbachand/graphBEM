@@ -17,10 +17,10 @@ def graphToSysEqnKCL(graph):
     # Build equations based on KCL for each node (except the reference node)
     for n, d in graph.nodes(data=True):
         # Sum of currents entering the node equals the sum of currents leaving the node (KCL)
-        A[n][n] += 1
+        A.loc[n,n] += 1
         for e in graph[n]:
-            A[e][n] = -d["boundaryResistance"] / graph[n][e]['radianceResistance']
-            A[n][n] += d["boundaryResistance"] / graph[n][e]['radianceResistance']
+            A.loc[n,e] = -d["boundaryResistance"] / graph[n][e]['radianceResistance']
+            A.loc[n,n] += d["boundaryResistance"] / graph[n][e]['radianceResistance']
 
     return A
 

@@ -1,4 +1,3 @@
-from epw import epw
 from matplotlib import pyplot as plt
 import matplotlib.ticker as mticker
 import matplotlib.colors as mcolors
@@ -9,16 +8,19 @@ import plotly.express as px
 import random
 import seaborn as sns
 import geopandas as gpd
+import pvlib
 
 def process_epw_file(file_path, verbose=False):
-    # Initialize the EPW object
-    a = epw()
+    # # Initialize the EPW object
+    # a = epw()
     
-    # Read the EPW file
-    a.read(file_path)
-    
+    # # Read the EPW file
+    # a.read(file_path)
+
+    data, meta = pvlib.iotools.read_epw(file_path)
+
     # Set the dataframe index to a datetime format
-    a.dataframe.index = pd.to_datetime(a.dataframe[['Year', 'Month', 'Day', 'Hour', 'Minute']])
+    # a.dataframe.index = pd.to_datetime(a.dataframe[['Year', 'Month', 'Day', 'Hour', 'Minute']])
     
     if verbose:
         print(f"Data for months: {set(a.dataframe['Month'])}, years: {set(a.dataframe['Year'])}")
@@ -35,16 +37,16 @@ def process_epw_file(file_path, verbose=False):
         print("Number of Ground Temperature Entries:", len(ground_temps))
     
     # Calculate unique months
-    uniqueMonths = a.dataframe.index[a.dataframe.index.day==15]
+    uniqueMonths = data.index[data.index.day==15]
     uniqueMonths = uniqueMonths.year.values + uniqueMonths.month.values/100
     uniqueMonths = np.unique(uniqueMonths)
     num_unique_months = len(uniqueMonths)
     if num_unique_months != 12:
         raise ValueError(f"Number of unique months is not 12. Found {num_unique_months} unique months.")
     # Return the processed information
-    return a.dataframe
+    return data, meta
     
-def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
+def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False, hR_obs=0.0, vR_obs=0.0):
     climate_zones = {
         1: {
             "City": "Arcata",
@@ -161,20 +163,139 @@ def getWeatherData(climateZoneKey = "CA_climate_zones.csv", verbose=False):
     }
 
     data = pd.DataFrame()
+    meta = pd.DataFrame()
     for zone, info in climate_zones.items():
         epw_file = f"./energyPlus/weather/CAClimateZones/{info['WeatherFile']}/{info['WeatherFile']}.epw"
-        zoneData = process_epw_file(epw_file, verbose=verbose)
+        zoneData, zoneMeta = process_epw_file(epw_file, verbose=verbose)
         zoneData["City"] = info["City"]
         zoneData["Latitude"] = info["Latitude"]
         zoneData["Longitude"] = info["Longitude"]
         zoneData["Elevation"] = info["Elevation"]
         zoneData["ClimateZone"] = zone
-        data = pd.concat([data, zoneData], axis="index")
-    
-    data["Total Sky Radiation"] = data["Horizontal Infrared Radiation Intensity"] + data["Global Horizontal Radiation"]
-    data["Equivalent Sky Temperature"] = (data["Total Sky Radiation"] / 5.67e-8)**0.25 - 273.15
+        
+        zoneData["Horizontal Shortwave Radiation"] = getShortwaveRadiation(zoneData, zoneMeta, tilts=[0], azimuths=[0])["poa_global"]
+        zoneData["Horizontal Sky Longwave Radiation"], zoneData["Horizontal Surfaces Longwave Radiation"] = getLongwaveRadiation(zoneData, surface_tilt=0, R_obs=hR_obs)
+        zoneData["Vertical Shortwave Radiation"] = getShortwaveRadiation(zoneData, zoneMeta, tilts=[90], azimuths=range(0, 360, 5))["poa_global"]
+        zoneData["Vertical Sky Longwave Radiation"], zoneData["Vertical Surfaces Longwave Radiation"] = getLongwaveRadiation(zoneData, surface_tilt=90, R_obs=vR_obs)
 
-    return data, climate_zones
+        data = pd.concat([data, zoneData], axis="index")
+        meta = pd.concat([meta, pd.Series(zoneMeta)], axis="columns")
+
+    return data, meta.T, climate_zones
+
+def getShortwaveRadiation(data, meta, tilts=[0], azimuths=[0, 90, 180, 270]):
+    solpos = pvlib.solarposition.get_solarposition(
+        time=data.index,
+        latitude=meta['latitude'],
+        longitude=meta['longitude'],
+        altitude=meta['altitude']
+    )
+
+    dni_extra = pvlib.irradiance.get_extra_radiation(data.index)
+    # --- Compute POA for many azimuths and average ---
+    poa_list = []
+
+    for az in azimuths:
+        for tilt in tilts:
+            poa_tmp = pvlib.irradiance.get_total_irradiance(
+                surface_tilt=tilt,
+                surface_azimuth=az,
+                dni=data['dni'],
+                ghi=data['ghi'],
+                dhi=data['dhi'],
+                dni_extra=dni_extra,
+                solar_zenith=solpos['zenith'],
+                solar_azimuth=solpos['azimuth'],
+                model='perez'
+            )
+            poa_list.append(poa_tmp)
+
+    # --- Combine into DataFrame and average across azimuths ---
+    poa_all = pd.concat(poa_list, axis=0)   # columns = each azimuth
+    poa_avg = poa_all.groupby(level=0).mean()
+
+    return poa_avg
+
+def getLongwaveRadiation(data, surface_tilt, R_obs=0):
+
+    air_temp_K = data['temp_air'] + 273.15
+    ghi_infrared = data['ghi_infrared']
+
+    # Stefan-Boltzmann constant (W/m^2/K^4)
+    sigma = 5.67e-8
+    if surface_tilt < 0 or surface_tilt > 90:
+        raise ValueError("Surface tilt must be between 0 and 90 degrees.")
+
+    # Convert tilt to radians
+    tilt_rad = np.radians(surface_tilt)
+
+    # Calculate view factors
+    Rdome = (1 + np.cos(tilt_rad)) / 2 - R_obs   # Sky view factor
+    Rground = 1 - Rdome                # Ground/obstruction view factor
+
+    if Rdome < 0 or Rground < 0:
+        raise ValueError(f"Invalid view factors calculated: Rdome = {Rdome}, Rground = {Rground}")
+
+    # Longwave radiation from the ground (assumes ground temperature = air temperature)
+    longwave_ground = sigma * air_temp_K**4 # emissivity is handled in the radiation network, so adding it here double-counts it
+
+    # Total longwave radiation incident on the surface
+    sky_longwave_radiation = Rdome * ghi_infrared
+    surfaces_longwave_radiation = Rground * longwave_ground
+
+    sky_longwave_radiation = pd.Series(sky_longwave_radiation, index=data.index, name='sky_longwave_radiation')
+    surfaces_longwave_radiation = pd.Series(surfaces_longwave_radiation, index=data.index, name='surfaces_longwave_radiation')
+
+    return sky_longwave_radiation, surfaces_longwave_radiation
+
+def adjustWindSpeed(U_obs, lat_deg, z0_new, z0_orig=0.03, z=10.0, wind_scaling=1.0, k=0.41):
+    """
+    Adjust wind speeds from an original surface roughness to a new surface roughness.
+
+    Parameters
+    ----------
+    U_obs : array-like
+        Observed wind speeds at height `z` for the original surface roughness (m/s).
+    z0_new : float
+        New surface roughness length (m).
+    z0_orig : float, optional
+        Original surface roughness length (m). Default = 0.03.
+    z : float, optional
+        Height at which to return adjusted wind speeds (m). Default = 10.
+    lat_deg : float, optional
+        Latitude in degrees. Default is Palo Alto (37.4419°).
+    k : float, optional
+        von Kármán constant. Default = 0.4.
+
+    Returns
+    -------
+    np.ndarray
+        Adjusted wind speeds at height `z` for the new roughness length.
+    """
+    # Coriolis parameter
+    omega = 7.27e-5  # rad/s
+    lat = np.radians(lat_deg)
+    fc = 2 * omega * np.sin(lat)
+
+    # Step 1: Compute original u_star from observed speed at 10 m height
+    u_star_orig = (U_obs * k) / np.log(10 / z0_orig)
+
+    # Step 2: Compute geostrophic wind speed for original conditions
+    zg_ABL = 0.08 * u_star_orig / fc
+    Ug = (u_star_orig / k) * np.log(zg_ABL / z0_orig)
+
+    # Step 3: Solve for new u_star given new roughness length
+    def objective(u_star_guess, z0, Ug_val):
+        return Ug_val - (u_star_guess / k) * np.log((0.08 * u_star_guess / fc) / z0)
+
+    u_star_new = np.zeros_like(U_obs)
+    for i in range(len(U_obs)):
+        u_star_new[i] = sp.optimize.fsolve(objective, u_star_orig[i], args=(z0_new, Ug[i]))[0]
+
+    # Step 4: Compute new wind speed at height z
+    U_new = (u_star_new / k) * np.log(z / z0_new)
+    U_new *= wind_scaling
+    return U_new
 
 def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThreshold=24, coolingDegBase=21, ventThreshold=None, keep = "VDDs"):
     # Constants
@@ -211,9 +332,9 @@ def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThres
         dataSampled = dataSampled.iloc[startStep : startStep + weatherSteps]
 
         # Resample the data to daily highs, lows, and average wind speed
-        daily_highs = dataSampled.resample('D')['Dry Bulb Temperature'].max()[0:-1]
-        daily_lows = dataSampled.resample('D')['Dry Bulb Temperature'].min()
-        daily_wind = dataSampled.resample('D')['Wind Speed'].mean()
+        daily_highs = dataSampled.resample('D')['temp_air'].max()[0:-1]
+        daily_lows = dataSampled.resample('D')['temp_air'].min()
+        daily_wind = dataSampled.resample('D')['wind_speed'].mean()
 
         # Initialize lists to store daily values
         cooling_degree = []
@@ -258,9 +379,9 @@ def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThres
 
     if plot:
         plt.figure(figsize=(12, 6))
-    
-        # Plot the dry bulb temperature over time
-        plt.plot(dataSampled.index, dataSampled["Dry Bulb Temperature"], label='Dry Bulb Temperature')
+
+        # Plot the air temperature over time
+        plt.plot(dataSampled.index, dataSampled["temp_air"], label='Air Temperature')
     
         # Scatter plot for daily highs and lows
         plt.scatter(daily_highs.index, daily_highs, color='red', label='Daily Highs')

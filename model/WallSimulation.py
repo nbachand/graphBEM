@@ -1,20 +1,20 @@
 import numpy as np
-import scipy.linalg as sp_linalg
 from model.utils import *
 
-def convectionDOE2(h_nat, V_10, R_f):
+def convectionDOE2(h_nat, V, R_f):
     """
     Calculate the convection coefficient using the DOE-2 method
     """
     alpha = np.mean([2.38, 2.86])
     beta = np.mean([0.617, 0.89])
-    return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V_10**beta)**2)**0.5
+    return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V**beta)**2)**0.5
     
 def processMaterials(material_df, n, dt = None, verbose = True):
     """
     Process pandas df of materials that make up wall
     """
 
+    material_df = material_df.copy()
     th = np.sum(material_df["Thickness"])
     delx = th / (n + 1) # set delx to evenly divide the thickness
     material_df["n"] = None
@@ -31,11 +31,20 @@ def processMaterials(material_df, n, dt = None, verbose = True):
             nMat = max([1, round(material_df.loc[index, "Thickness"] / delx)]) # make sure n is at least 1
             material_df.loc[index, "n"] = nMat
             new_thickness = nMat * delx
-            scaling_factor = material_df.loc[index, "Thickness"] / new_thickness
-            material_df.loc[index, "Conductivity"] = material_df.loc[index, "Conductivity"] * scaling_factor
-            material_df.loc[index, "Specific_Heat"] = material_df.loc[index, "Specific_Heat"] * scaling_factor
+            
+            # Store original thermal resistance
+            original_R = material_df.loc[index, "Thickness"] / material_df.loc[index, "Conductivity"]
+            original_thermal_mass = material_df.loc[index, "Thickness"] * material_df.loc[index, "Density"] * material_df.loc[index, "Specific_Heat"]
+
+            # Update thickness
             material_df.loc[index, "Thickness"] = new_thickness
-            material_df.loc[index, "Thermal_Resistance"] =  material_df.loc[index, "Thickness"] / material_df.loc[index, "Conductivity"] # convert to R value for reference
+            # Recalculate conductivity to preserve R-value
+            material_df.loc[index, "Conductivity"] = new_thickness / original_R
+            # Adjust density to preserve thermal mass
+            material_df.loc[index, "Density"] = original_thermal_mass / (new_thickness * material_df.loc[index, "Specific_Heat"])
+            
+            material_df.loc[index, "Thermal_Resistance"] = original_R # Store the preserved R-value
+            
         if dt is not None:
             densityMargin = 1.1
             densityMin = densityMargin * dt * material_df.loc[index, "Conductivity"] / (delx**2 * material_df.loc[index, "Specific_Heat"])
@@ -52,7 +61,7 @@ def processMaterials(material_df, n, dt = None, verbose = True):
 class WallSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["X", "Y", "material_df", "h", "absorptivity", "n", "delt"])
+        expected_kwards = set(["X", "Y", "material_df", "h", "roughness", "absorptivity", "n", "delt", "implicit"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         # Constants
@@ -61,7 +70,11 @@ class WallSimulation:
         self.x = np.linspace(0, self.th, self.n + 2)
 
     def processMaterialDict(self, material_df, verbose = False):
-        material_df = processMaterials(material_df, self.n, dt = self.delt, verbose = verbose)
+        if self.implicit:
+            dt = None
+        else:
+            dt = self.delt
+        material_df = processMaterials(material_df, self.n, dt = dt, verbose = verbose)
         # self.n  = int(material_df["n"].sum())
         self.th = np.sum(material_df["Thickness"])
         self.delx = self.th / (self.n + 1) # set delx to evenly divide the thickness
@@ -79,17 +92,23 @@ class WallSimulation:
 
         self.material_df = material_df
 
-    def initialize(self, delt, TfF, TfB, verbose = False):
+    def initialize(self, delt, TfF, TfB, windSpeed=0, verbose = False):
+        self.windSpeed = windSpeed
+        self.hCalced = WallSides(
+            front=convectionDOE2(self.h.front, self.windSpeed, self.roughness.front),
+            back=convectionDOE2(self.h.back, self.windSpeed, self.roughness.back)
+        )
         # Scaling factors
         self.lambda_vals = (delt / self.delx**2) * self.kfs / (self.rhofs * self.Cfs)
         if verbose:
             i_max = np.argmax(self.lambda_vals)
             # print(f"maximum time step: {delt/self.lambda_vals[i_max]} at node {i_max}")
         # create error to catch timestep that is too large
-        try:
-            assert np.min(delt/self.lambda_vals) > delt
-        except:
-            raise ValueError("Time step too large for stability")
+        if self.implicit == False:
+            try:
+                assert np.min(delt/self.lambda_vals) > delt
+            except:
+                raise ValueError("Time step too large for stability")
         self.lambda_bound = WallSides()
         self.lambda_bound.front = self.kfs[0] / (self.h.front * self.delx)
         self.lambda_bound.back = self.kfs[-1] / (self.h.back * self.delx)
@@ -108,6 +127,20 @@ class WallSimulation:
         A_matrix[-1, -1] += self.lambda_vals[-1] * self.lambda_bound.back / (1 + self.lambda_bound.back)
 
         self.A = A_matrix
+
+        # Setup matrices differently for implicit method
+        I = np.eye(self.n)
+        self.A_implicit = I + np.zeros((self.n, self.n))  # Will fill with coefficients
+        for i in range(self.n):
+            self.A_implicit[i, i] = 1 + 2 * self.lambda_vals[i]
+            if i < self.n - 1:
+                self.A_implicit[i, i + 1] = -self.lambda_vals[i]
+            if i > 0:
+                self.A_implicit[i, i - 1] = -self.lambda_vals[i]
+
+        # Adjust boundary conditions for implicit method
+        self.A_implicit[0, 0] -= self.lambda_vals[0] * self.lambda_bound.front / (1 + self.lambda_bound.front)
+        self.A_implicit[-1, -1] -= self.lambda_vals[-1] * self.lambda_bound.back / (1 + self.lambda_bound.back)
 
         # ###########################
         # # Plot the color plot
@@ -134,17 +167,22 @@ class WallSimulation:
         self.Erad = WallSides(0, 0) #radiative heat flux at front (area averaged)
 
     def timeStep(self, TintF, TintB):
-        TintRadF = TintF + self.Erad.front / self.h.front
-        TintRadB = TintB + self.Erad.back / self.h.back
+        # self.windSpeed = np.mean([0, 6])
+        self.hCalced = WallSides(
+            front=convectionDOE2(self.h.front, self.windSpeed, self.roughness.front),
+            back=convectionDOE2(self.h.back, self.windSpeed, self.roughness.back)
+        )
+        TintRadF = TintF + self.Erad.front / self.hCalced.front
+        TintRadB = TintB + self.Erad.back / self.hCalced.back
         self.b[0] = self.lambda_vals[0] * TintRadF / (1 + self.lambda_bound.front)
         self.b[-1] = self.lambda_vals[-1] * TintRadB / (1 + self.lambda_bound.back)
-        self.T = np.dot(self.A, self.T) + self.b
-        # self.T = np.linalg.solve(self.A, self.b)
+        # self.T = np.dot(self.A, self.T) + self.b # explicit solve
+        self.T = np.linalg.solve(self.A_implicit, self.T + self.b) # implicit solve
         self.T_prof = self.getWallProfile(TintRadF, TintRadB)
 
         Ef = WallSides()
-        Ef.front = self.Af * (self.T_prof[0] - TintF) * self.h.front
-        Ef.back = self.Af * (self.T_prof[-1] - TintB) * self.h.back
+        Ef.front = self.Af * (self.T_prof[0] - TintF) * self.hCalced.front
+        Ef.back = self.Af * (self.T_prof[-1] - TintB) * self.hCalced.back
         return Ef
 
     def getWallProfile(self, TintF, TintB):
