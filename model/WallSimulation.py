@@ -61,7 +61,7 @@ def processMaterials(material_df, n, dt = None, verbose = True):
 class WallSimulation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["X", "Y", "material_df", "h", "roughness", "absorptivity", "n", "delt"])
+        expected_kwards = set(["X", "Y", "material_df", "h", "roughness", "absorptivity", "n", "delt", "implicit"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         # Constants
@@ -70,7 +70,11 @@ class WallSimulation:
         self.x = np.linspace(0, self.th, self.n + 2)
 
     def processMaterialDict(self, material_df, verbose = False):
-        material_df = processMaterials(material_df, self.n, dt = self.delt, verbose = verbose)
+        if self.implicit:
+            dt = None
+        else:
+            dt = self.delt
+        material_df = processMaterials(material_df, self.n, dt = dt, verbose = verbose)
         # self.n  = int(material_df["n"].sum())
         self.th = np.sum(material_df["Thickness"])
         self.delx = self.th / (self.n + 1) # set delx to evenly divide the thickness
@@ -100,10 +104,11 @@ class WallSimulation:
             i_max = np.argmax(self.lambda_vals)
             # print(f"maximum time step: {delt/self.lambda_vals[i_max]} at node {i_max}")
         # create error to catch timestep that is too large
-        try:
-            assert np.min(delt/self.lambda_vals) > delt
-        except:
-            raise ValueError("Time step too large for stability")
+        if self.implicit == False:
+            try:
+                assert np.min(delt/self.lambda_vals) > delt
+            except:
+                raise ValueError("Time step too large for stability")
         self.lambda_bound = WallSides()
         self.lambda_bound.front = self.kfs[0] / (self.h.front * self.delx)
         self.lambda_bound.back = self.kfs[-1] / (self.h.back * self.delx)
@@ -122,6 +127,20 @@ class WallSimulation:
         A_matrix[-1, -1] += self.lambda_vals[-1] * self.lambda_bound.back / (1 + self.lambda_bound.back)
 
         self.A = A_matrix
+
+        # Setup matrices differently for implicit method
+        I = np.eye(self.n)
+        self.A_implicit = I + np.zeros((self.n, self.n))  # Will fill with coefficients
+        for i in range(self.n):
+            self.A_implicit[i, i] = 1 + 2 * self.lambda_vals[i]
+            if i < self.n - 1:
+                self.A_implicit[i, i + 1] = -self.lambda_vals[i]
+            if i > 0:
+                self.A_implicit[i, i - 1] = -self.lambda_vals[i]
+
+        # Adjust boundary conditions for implicit method
+        self.A_implicit[0, 0] -= self.lambda_vals[0] * self.lambda_bound.front / (1 + self.lambda_bound.front)
+        self.A_implicit[-1, -1] -= self.lambda_vals[-1] * self.lambda_bound.back / (1 + self.lambda_bound.back)
 
         # ###########################
         # # Plot the color plot
@@ -157,8 +176,8 @@ class WallSimulation:
         TintRadB = TintB + self.Erad.back / self.hCalced.back
         self.b[0] = self.lambda_vals[0] * TintRadF / (1 + self.lambda_bound.front)
         self.b[-1] = self.lambda_vals[-1] * TintRadB / (1 + self.lambda_bound.back)
-        self.T = np.dot(self.A, self.T) + self.b
-        # self.T = np.linalg.solve(self.A, self.b)
+        # self.T = np.dot(self.A, self.T) + self.b # explicit solve
+        self.T = np.linalg.solve(self.A_implicit, self.T + self.b) # implicit solve
         self.T_prof = self.getWallProfile(TintRadF, TintRadB)
 
         Ef = WallSides()
