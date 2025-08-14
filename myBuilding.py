@@ -52,6 +52,7 @@ def runMyBEM(
     floorMaterial = materials["floor"]
     n = 9
     nFloor = 19
+    implicit = True
     if verbose:
         print("floor material:")
         print(processMaterials(floorMaterial.copy(), nFloor))
@@ -148,10 +149,10 @@ def runMyBEM(
             'OD': vrad
         }
     }
-    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "roughness": WallSides(0,0), "absorptivity" : alphaWalls, "n": n}
-    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior_nat), "roughness": WallSides(0,wallRoughness), "absorptivity" : alphaWalls,  "n": n}
-    wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, hExterior_nat), "roughness": WallSides(0,wallRoughness), "absorptivity" : alphaRoof, "n": n}
-    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "roughness": WallSides(0,0), "absorptivity" : alphaWalls, "n": nFloor}
+    wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "roughness": WallSides(0,0), "absorptivity" : alphaWalls, "n": n, "implicit": implicit}
+    wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior_nat), "roughness": WallSides(0,wallRoughness), "absorptivity" : alphaWalls,  "n": n, "implicit": implicit}
+    wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, hExterior_nat), "roughness": WallSides(0,wallRoughness), "absorptivity" : alphaRoof, "n": n, "implicit": implicit}
+    wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "roughness": WallSides(0,0), "absorptivity" : alphaWalls, "n": nFloor, "implicit": implicit}
 
     room_kwargs = {
         "T0": np.mean(Touts), #Touts[0],
