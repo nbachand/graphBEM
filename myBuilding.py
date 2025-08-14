@@ -42,6 +42,8 @@ def runMyBEM(
         verbose = False,
         makePlots = False):
 
+    materials = materials.copy()
+    weather_data = weather_data.copy()
     epsilonSky = 0.9
     outputs = {}
     wallMaterial = materials["wall"]

@@ -14,6 +14,7 @@ def processMaterials(material_df, n, dt = None, verbose = True):
     Process pandas df of materials that make up wall
     """
 
+    material_df = material_df.copy()
     th = np.sum(material_df["Thickness"])
     delx = th / (n + 1) # set delx to evenly divide the thickness
     material_df["n"] = None
@@ -30,11 +31,20 @@ def processMaterials(material_df, n, dt = None, verbose = True):
             nMat = max([1, round(material_df.loc[index, "Thickness"] / delx)]) # make sure n is at least 1
             material_df.loc[index, "n"] = nMat
             new_thickness = nMat * delx
-            scaling_factor = material_df.loc[index, "Thickness"] / new_thickness
-            material_df.loc[index, "Conductivity"] = material_df.loc[index, "Conductivity"] * scaling_factor
-            material_df.loc[index, "Specific_Heat"] = material_df.loc[index, "Specific_Heat"] * scaling_factor
+            
+            # Store original thermal resistance
+            original_R = material_df.loc[index, "Thickness"] / material_df.loc[index, "Conductivity"]
+            original_thermal_mass = material_df.loc[index, "Thickness"] * material_df.loc[index, "Density"] * material_df.loc[index, "Specific_Heat"]
+
+            # Update thickness
             material_df.loc[index, "Thickness"] = new_thickness
-            material_df.loc[index, "Thermal_Resistance"] =  material_df.loc[index, "Thickness"] / material_df.loc[index, "Conductivity"] # convert to R value for reference
+            # Recalculate conductivity to preserve R-value
+            material_df.loc[index, "Conductivity"] = new_thickness / original_R
+            # Adjust density to preserve thermal mass
+            material_df.loc[index, "Density"] = original_thermal_mass / (new_thickness * material_df.loc[index, "Specific_Heat"])
+            
+            material_df.loc[index, "Thermal_Resistance"] = original_R # Store the preserved R-value
+            
         if dt is not None:
             densityMargin = 1.1
             densityMin = densityMargin * dt * material_df.loc[index, "Conductivity"] / (delx**2 * material_df.loc[index, "Specific_Heat"])
