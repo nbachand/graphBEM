@@ -12,7 +12,7 @@ from model import \
 class BuildingSimulation():
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-        expected_kwards = set(["delt", "simLength", "Tout", "radG", "Tfloor"])
+        expected_kwards = set(["delt", "simLength", "Tbound", "windSpeed", "radG"])
         if set(kwargs.keys()) != expected_kwards:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         self.t = 0 #time (seconds)
@@ -20,7 +20,10 @@ class BuildingSimulation():
         self.times = np.arange(0, self.simLength + self.delt, self.delt)
         self.hours = self.times / 60 / 60
         self.N = len(self.times)
-        self.Tout = getEquivalentTimeSeries(self.Tout, self.times)
+        for node in self.Tbound:
+            self.Tbound[node] = getEquivalentTimeSeries(self.Tbound[node], self.times)
+        for node in self.windSpeed:
+            self.windSpeed[node] = getEquivalentTimeSeries(self.windSpeed[node], self.times)
         for node in self.radG:
             self.radG[node] = getEquivalentTimeSeries(self.radG[node], self.times)
         self.radDamping =  self.delt / (1 + self.delt)# 0 damping factor for radiation
@@ -31,10 +34,8 @@ class BuildingSimulation():
             r = rs.RoomSimulation(**d["room_kwargs"])
             v = vs.VentilationSimulation(**d["vent_kwargs"])
             r.initialize(self.delt)
-            if n == "OD" or n == "RF":
-                r.Tint = self.Tout[0]
-            elif n == "FL":
-                r.Tint = self.Tfloor
+            if n in self.Tbound:
+                r.Tint = self.Tbound[n][0]
 
             Tints = np.zeros(self.N) # initializing interior air temp vector
             Tints[0] = r.Tint
@@ -62,9 +63,10 @@ class BuildingSimulation():
 
             radEApplied = WallSides() # initialize applied radiation as wall-side object
             radECalc = WallSides() # initialize calculated radiation as wall-side object
-            for radE in [radEApplied, radECalc]:
-                radE.front = np.zeros(self.N)
-                radE.back = np.zeros(self.N)
+            hCalced = WallSides()
+            for quantity in [radEApplied, radECalc, hCalced]:
+                quantity.front = np.zeros(self.N)
+                quantity.back = np.zeros(self.N)
 
             # store wall and related data as edge properties in graph 
             d.update({
@@ -72,6 +74,7 @@ class BuildingSimulation():
                 "T_profs": T_profs,
                 "radEApplied": radEApplied,
                 "radECalc": radECalc,
+                "hCalced": hCalced,
                 })
         for n, d in self.bG.G.nodes(data=True):
             rad = rd.Radiation(**d["rad_kwargs"])
@@ -90,11 +93,11 @@ class BuildingSimulation():
             # Simulation logic
             # Solve Radiation
             for n, d in self.bG.G.nodes(data=True):
-                if d["rad"].solveType == "sky":
-                    solarGain = self.radG[n][c]
+                if n in self.radG:
+                    d["rad"].solarGain = self.radG[n][c]
                 else:
-                    solarGain = 0
-                E = d["rad"].timeStep(solarGain = solarGain)
+                    d["rad"].solarGain = 0
+                E = d["rad"].timeStep()
                 E = E.dropna()
                 for wall, EWall in E.items():
                     if wall == "sky":
@@ -116,19 +119,26 @@ class BuildingSimulation():
 
             # Solve Walls
             for i, j, d in self.bG.G.edges(data=True):
+                if i in self.windSpeed:
+                    d["wall"].windSpeed = self.windSpeed[i][c]
+                elif j in self.windSpeed:
+                    d["wall"].windSpeed = self.windSpeed[j][c]
+                else:
+                    d["wall"].windSpeed = 0
                 Ef = d["wall"].timeStep(self.bG.G.nodes[d["nodes"].front]["room"].Tint, self.bG.G.nodes[d["nodes"].back]["room"].Tint)
                 self.bG.G.nodes[d["nodes"].front]["Ef"] += Ef.front * d["weight"]
                 self.bG.G.nodes[d["nodes"].back]["Ef"] += Ef.back * d["weight"]
                 d["T_profs"][:,c] = d["wall"].T_prof
+                d["hCalced"].front[c] = d["wall"].hCalced.front
+                d["hCalced"].back[c] = d["wall"].hCalced.back
 
             # Solve Rooms
             for n, d in self.bG.G.nodes(data=True):
-                if n == "OD" or n == "RF":
-                    d["room"].Tint = self.Tout[c] # if outdoors, just use outdoor temp
-                elif n == "FL":
-                    d["room"].Tint = self.Tfloor # if floor, just use floor temp
+                if n in self.Tbound:
+                    d["room"].Tint = self.Tbound[n][c] # assign boundary temp
                 else:
-                    Evt = d["vent"].timeStep(self.t, Tint = d["room"].Tint, Tout = self.Tout[c])
+                    Tout = self.Tbound["OD"][c]
+                    Evt = d["vent"].timeStep(self.t, Tint = d["room"].Tint, Tout = Tout)
                     d["Vnvs"][c] = d["vent"].Vnv
                     d["room"].timeStep(d["Ef"], Evt)
                 d["Tints"][c] = d["room"].Tint

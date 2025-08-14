@@ -248,6 +248,55 @@ def getLongwaveRadiation(data, surface_tilt, R_obs=0):
 
     return sky_longwave_radiation, surfaces_longwave_radiation
 
+def adjustWindSpeed(U_obs, lat_deg, z0_new, z0_orig=0.03, z=10.0, wind_scaling=1.0, k=0.41):
+    """
+    Adjust wind speeds from an original surface roughness to a new surface roughness.
+
+    Parameters
+    ----------
+    U_obs : array-like
+        Observed wind speeds at height `z` for the original surface roughness (m/s).
+    z0_new : float
+        New surface roughness length (m).
+    z0_orig : float, optional
+        Original surface roughness length (m). Default = 0.03.
+    z : float, optional
+        Height at which to return adjusted wind speeds (m). Default = 10.
+    lat_deg : float, optional
+        Latitude in degrees. Default is Palo Alto (37.4419°).
+    k : float, optional
+        von Kármán constant. Default = 0.4.
+
+    Returns
+    -------
+    np.ndarray
+        Adjusted wind speeds at height `z` for the new roughness length.
+    """
+    # Coriolis parameter
+    omega = 7.27e-5  # rad/s
+    lat = np.radians(lat_deg)
+    fc = 2 * omega * np.sin(lat)
+
+    # Step 1: Compute original u_star from observed speed at 10 m height
+    u_star_orig = (U_obs * k) / np.log(10 / z0_orig)
+
+    # Step 2: Compute geostrophic wind speed for original conditions
+    zg_ABL = 0.08 * u_star_orig / fc
+    Ug = (u_star_orig / k) * np.log(zg_ABL / z0_orig)
+
+    # Step 3: Solve for new u_star given new roughness length
+    def objective(u_star_guess, z0, Ug_val):
+        return Ug_val - (u_star_guess / k) * np.log((0.08 * u_star_guess / fc) / z0)
+
+    u_star_new = np.zeros_like(U_obs)
+    for i in range(len(U_obs)):
+        u_star_new[i] = sp.optimize.fsolve(objective, u_star_orig[i], args=(z0_new, Ug[i]))[0]
+
+    # Step 4: Compute new wind speed at height z
+    U_new = (u_star_new / k) * np.log(z / z0_new)
+    U_new *= wind_scaling
+    return U_new
+
 def sampleVentWeather(data, climate_zones, runDays, dt, plot=False, coolingThreshold=24, coolingDegBase=21, ventThreshold=None, keep = "VDDs"):
     # Constants
     dt = 3600  # Data time step in seconds
