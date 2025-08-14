@@ -63,9 +63,10 @@ class BuildingSimulation():
 
             radEApplied = WallSides() # initialize applied radiation as wall-side object
             radECalc = WallSides() # initialize calculated radiation as wall-side object
-            for radE in [radEApplied, radECalc]:
-                radE.front = np.zeros(self.N)
-                radE.back = np.zeros(self.N)
+            hCalced = WallSides()
+            for quantity in [radEApplied, radECalc, hCalced]:
+                quantity.front = np.zeros(self.N)
+                quantity.back = np.zeros(self.N)
 
             # store wall and related data as edge properties in graph 
             d.update({
@@ -73,6 +74,7 @@ class BuildingSimulation():
                 "T_profs": T_profs,
                 "radEApplied": radEApplied,
                 "radECalc": radECalc,
+                "hCalced": hCalced,
                 })
         for n, d in self.bG.G.nodes(data=True):
             rad = rd.Radiation(**d["rad_kwargs"])
@@ -127,6 +129,8 @@ class BuildingSimulation():
                 self.bG.G.nodes[d["nodes"].front]["Ef"] += Ef.front * d["weight"]
                 self.bG.G.nodes[d["nodes"].back]["Ef"] += Ef.back * d["weight"]
                 d["T_profs"][:,c] = d["wall"].T_prof
+                d["hCalced"].front[c] = d["wall"].hCalced.front
+                d["hCalced"].back[c] = d["wall"].hCalced.back
 
             # Solve Rooms
             for n, d in self.bG.G.nodes(data=True):

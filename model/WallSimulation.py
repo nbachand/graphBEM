@@ -80,6 +80,10 @@ class WallSimulation:
 
     def initialize(self, delt, TfF, TfB, windSpeed=0, verbose = False):
         self.windSpeed = windSpeed
+        self.hCalced = WallSides(
+            front=convectionDOE2(self.h.front, self.windSpeed, self.roughness.front),
+            back=convectionDOE2(self.h.back, self.windSpeed, self.roughness.back)
+        )
         # Scaling factors
         self.lambda_vals = (delt / self.delx**2) * self.kfs / (self.rhofs * self.Cfs)
         if verbose:
@@ -134,10 +138,13 @@ class WallSimulation:
         self.Erad = WallSides(0, 0) #radiative heat flux at front (area averaged)
 
     def timeStep(self, TintF, TintB):
-        hfront = convectionDOE2(self.h.front, self.windSpeed, self.roughness.front)
-        hback = convectionDOE2(self.h.back, self.windSpeed, self.roughness.back)
-        TintRadF = TintF + self.Erad.front / hfront
-        TintRadB = TintB + self.Erad.back / hback
+        # self.windSpeed = np.mean([0, 6])
+        self.hCalced = WallSides(
+            front=convectionDOE2(self.h.front, self.windSpeed, self.roughness.front),
+            back=convectionDOE2(self.h.back, self.windSpeed, self.roughness.back)
+        )
+        TintRadF = TintF + self.Erad.front / self.hCalced.front
+        TintRadB = TintB + self.Erad.back / self.hCalced.back
         self.b[0] = self.lambda_vals[0] * TintRadF / (1 + self.lambda_bound.front)
         self.b[-1] = self.lambda_vals[-1] * TintRadB / (1 + self.lambda_bound.back)
         self.T = np.dot(self.A, self.T) + self.b
@@ -145,8 +152,8 @@ class WallSimulation:
         self.T_prof = self.getWallProfile(TintRadF, TintRadB)
 
         Ef = WallSides()
-        Ef.front = self.Af * (self.T_prof[0] - TintF) * hfront
-        Ef.back = self.Af * (self.T_prof[-1] - TintB) * hback
+        Ef.front = self.Af * (self.T_prof[0] - TintF) * self.hCalced.front
+        Ef.back = self.Af * (self.T_prof[-1] - TintB) * self.hCalced.back
         return Ef
 
     def getWallProfile(self, TintF, TintB):

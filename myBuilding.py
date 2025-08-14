@@ -324,6 +324,21 @@ def runMyBEM(
             plotVentLines(times.index.values[i], allVent)
         c = 0
         for i, j, d, in build_sim.bG.G.edges(data=True):
+            if d['nodes'].checkSides(i, False) in ["OD", "RF"] or d['nodes'].checkSides(j, False) in ["OD", "RF"]:
+                colors = list(mcolors.TABLEAU_COLORS.keys())
+                linetypes = ['-', '--']
+                plt.plot(times.index.values, d['hCalced'].back, label=f'{i}-{j}-F', color = colors[c], linestyle = linetypes[0])
+                plt.plot(times.index.values, d['hCalced'].front, label=f'{i}-{j}-B', color = colors[c], linestyle = linetypes[1])
+                c = (c + 1) % len(colors)
+        tempPlotBasics()
+        plt.ylabel('Convection Coefficient [W/m^2-K]')
+        plt.title("Exterior Convection Coefficients")
+
+        plt.figure(figsize=(10, 6))
+        for i in iVent:
+            plotVentLines(times.index.values[i], allVent)
+        c = 0
+        for i, j, d, in build_sim.bG.G.edges(data=True):
             if d['nodes'].checkSides(i, False) == "OD" or d['nodes'].checkSides(j, False) == "OD":
                 plt.plot(times.index.values, d['radECalc'].back, label=f'{i}-{j}-C', color = colors[c], linestyle = linetypes[0])
                 plt.plot(times.index.values, d['radEApplied'].back, label=f'{i}-{j}-A', color = colors[c], linestyle = linetypes[1])
