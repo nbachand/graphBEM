@@ -41,3 +41,22 @@ class RadiationTests(unittest.TestCase):
         self.assertAlmostEqual(q['RF'], expected)
         for edge in mapping.values(): edge['wall'].T_prof[:] = 300
         np.testing.assert_allclose(r.timeStep(),0,atol=1e-10)
+
+    def test_surface_order_does_not_change_exchange(self):
+        from building_fixture import example
+        sim = example()
+        rng = np.random.default_rng(42)
+        for room in ['CR', 'SS', 'DR', 'CV']:
+            mapping = dict(sim.bG.G[room])
+            for other, edge in mapping.items():
+                edge['wall'].T_prof[:] = 310 if other == 'RF' else 290 if other == 'FL' else 300
+            ref = Radiation(solveType='room')
+            ref.initialize(mapping)
+            q = ref.timeStep().sort_index()
+            permutations = [list(reversed(mapping))] + [rng.permutation(list(mapping)).tolist() for _ in range(12)]
+            for order in permutations:
+                candidate = Radiation(solveType='room')
+                candidate.initialize({key: mapping[key] for key in order})
+                np.testing.assert_allclose(candidate.timeStep().sort_index(), q, atol=1e-10)
+                for a, b, edge in ref.G.edges(data=True):
+                    self.assertAlmostEqual(edge['radianceResistance'], candidate.G[a][b]['radianceResistance'])

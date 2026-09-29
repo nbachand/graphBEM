@@ -92,27 +92,29 @@ class Radiation:
             d["boundaryResistance"] = (1 - alpha) / (alpha * d["A"])
 
         for i, j, d in self.G.edges(data=True):
-            #don't use properties of "sky" node
-            if i == "sky":
-                i = j
-            elif j == "sky":
-                j = i
-            #calc radiance resistance
-            X = self.G.nodes[i]["X"]
-            Y = self.G.nodes[i]["Y"]
             if self.solveType == "sky":
-                F = 1
-            elif set([i, j]) == set(["RF", "FL"]):
-                if self.G.nodes[i]["A"] != self.G.nodes[j]["A"]:
-                    raise Exception("Areas of roof and floor do not match")
-                F = getVFAlignedRectangles(X, Y, self.storyHeight)
+                surface = j if i == "sky" else i
+                exchange_area = self.G.nodes[surface]["A"]
+            elif {i, j} == {"RF", "FL"}:
+                roof, floor = self.G.nodes["RF"], self.G.nodes["FL"]
+                if roof["A"] != floor["A"]:
+                    raise ValueError("Areas of roof and floor do not match")
+                F = getVFAlignedRectangles(roof["X"], roof["Y"], self.storyHeight)
+                exchange_area = roof["A"] * F
             else:
-                Z = [self.G.nodes[j]["X"], self.G.nodes[j]["Y"]]
-                if X not in Z:
-                    raise Exception("Dimmension along seam of {i} and {j} do not match")
-                Z.remove(X)
-                F = getVFPerpRectanglesCommonEdge(X, Y, Z[0]) 
-            d["radianceResistance"] = 1 / (self.G.nodes[i]["A"] * F)
+                # Always evaluate wall -> horizontal surface. The wall's area
+                # includes its multiplicity (and both faces for self-loops).
+                # The same A*F is used in both directions, enforcing reciprocity.
+                horizontal = i if i in {"RF", "FL"} else j
+                wall = j if horizontal == i else i
+                w, h = self.G.nodes[wall], self.G.nodes[horizontal]
+                dimensions = [h["X"], h["Y"]]
+                if w["X"] not in dimensions:
+                    raise ValueError(f"No shared edge between {wall} and {horizontal}")
+                dimensions.remove(w["X"])
+                F = getVFPerpRectanglesCommonEdge(w["X"], w["Y"], dimensions[0])
+                exchange_area = w["A"] * F
+            d["radianceResistance"] = 1 / exchange_area
         if drawGraphs:
             draw(self.G, weight = "radianceResistance")
         self.A = graphToSysEqnKCL(self.G)
