@@ -1,5 +1,5 @@
 import numpy as np
-from numpy import trapz
+from numpy import trapezoid
 
 class VentilationSimulation:
     def __init__(self, **kwargs):
@@ -33,7 +33,7 @@ class VentilationSimulation:
     def get_Aeff(self, alpha):
         z = np.linspace(0, self.H, 1000)
         Wpivot = self.get_Wpivot(z, alpha)
-        return trapz(Wpivot, z)
+        return trapezoid(Wpivot, z)
 
     def get_Cd(self, alpha):
         Cd0 = 0.611

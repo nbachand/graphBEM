@@ -109,7 +109,7 @@ class Radiation:
                     raise Exception("Dimmension along seam of {i} and {j} do not match")
                 Z.remove(X)
                 F = getVFPerpRectanglesCommonEdge(X, Y, Z[0]) 
-            d["radianceResistance"] = (self.G.nodes[i]["A"] * F) ** -1
+            d["radianceResistance"] = 1 / (self.G.nodes[i]["A"] * F)
         if drawGraphs:
             draw(self.G, weight = "radianceResistance")
         self.A = graphToSysEqnKCL(self.G)

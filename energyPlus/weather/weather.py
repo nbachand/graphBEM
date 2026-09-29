@@ -456,7 +456,7 @@ def plotCZMap(df, categories = "Climate Zone", weights = None, vmin = 0, vmax = 
     gdf = gpd.read_file("energyPlus/weather/CAClimateZones/BuildingClimateZonesGIS/Building_Climate_Zones.shp")
 
     # Assume you have a DataFrame with climate zone and probability data
-    _, climate_zones = getWeatherData()
+    _, _, climate_zones = getWeatherData()
     climate_data = pd.DataFrame(climate_zones).T  # Replace with your actual data
 
     if weights is not None:

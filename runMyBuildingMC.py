@@ -137,7 +137,7 @@ def main(N = 300, runDays = 7, resultsKey = "timestr", randomSeed = 666, materia
 
 
     # %%
-    data, climate_zones = getWeatherData()
+    data, _, climate_zones = getWeatherData()
     dt = 30
 
 
