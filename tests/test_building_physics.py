@@ -36,3 +36,27 @@ class BuildingPhysicsTests(unittest.TestCase):
             volume = sim.bG.G.nodes[room]['room'].V
             self.assertEqual(volume, expected)
             self.assertEqual(volume, floor['wall'].Af * floor['weight'] * 3)
+
+    def test_radiation_is_applied_without_temporal_filter(self):
+        for dt in [15, 30, 60]:
+            sim = example(dt=dt)
+            sim.run()
+            for _, _, edge in sim.bG.G.edges(data=True):
+                for side in ['front', 'back']:
+                    np.testing.assert_array_equal(getattr(edge['radECalc'], side),
+                                                  getattr(edge['radEApplied'], side))
+
+    def test_explicit_radiation_coupling_converges(self):
+        temperatures = []
+        for dt in [30, 15, 7.5]:
+            sim = example(dt=dt, steps=int(7200/dt))
+            for node in ['RF', 'OD']:
+                sim.radG[node]['shortwave'] = 400*np.sin(np.pi*sim.times/7200)**2
+            sim.run()
+            values = np.array([sim.bG.G.nodes[r]['Tints'][::int(30/dt)]
+                               for r in ['CR', 'SS', 'DR', 'CV']])
+            self.assertTrue(np.isfinite(values).all())
+            temperatures.append(values)
+        coarse = np.sqrt(np.mean((temperatures[0]-temperatures[1])**2))
+        fine = np.sqrt(np.mean((temperatures[1]-temperatures[2])**2))
+        self.assertLess(fine, .7*coarse)

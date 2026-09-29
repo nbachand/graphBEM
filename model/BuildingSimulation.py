@@ -34,7 +34,9 @@ class BuildingSimulation():
             else:
                 # Legacy scalar/array inputs denote incident shortwave only.
                 self.radG[node] = getEquivalentTimeSeries(forcing, self.times)
-        self.radDamping =  self.delt / (1 + self.delt)# 0 damping factor for radiation
+        # Radiation uses the previous surface temperatures (explicit coupling).
+        # No temporal filter: thermal storage belongs to the wall/air balances.
+        self.radDamping = 0.0
 
     def initialize(self, bG:bg.BuildingGraph, verbose = False):
         self.bG = bG
