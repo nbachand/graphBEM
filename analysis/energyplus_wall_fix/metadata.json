@@ -1,0 +1,13 @@
+{
+  "weather": "CA_BURBANK-GLNDLE-PASAD-AP_722880S_CZ2022",
+  "start": "2008-08-01 01:00:00-08:00",
+  "end": "2008-08-02 18:39:30-08:00",
+  "timestep_seconds": 30,
+  "samples": 5000,
+  "ep_case": "/Users/nicholasbachand/codes/plan2EPlus/cases/graphbem_cali/CA_BURBANK-GLNDLE-PASAD-AP_722880S_CZ2022",
+  "baseline_wall": "/tmp/ep-audit/WallSimulation_before.py",
+  "note": "Short diagnostic without matched warm-up; full 15-minute intervals only. Flux RMSE in W/m2; temperature RMSE in K; h RMSE in W/(m2 K). Conduction positive toward each surface; convection/radiation positive into surface.",
+  "baseline_sha256": "6ef19de0c3d2d948b5d5ad71aa32742a50219c67631081082c28da335fb3aadc",
+  "solver_sha256": "900dc6d05ab47af32b034e26097cf499348bbcd35bc1d46fd433762c161ff881",
+  "baseline_git_revision": "ca77fca4a9216c03567bab59b7a58e805eab3278"
+}

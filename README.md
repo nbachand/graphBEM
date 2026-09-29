@@ -73,55 +73,49 @@ I have been using a simplified temperature model where I take the average outdoo
 
 ### Governing Equation
 
-The governing equation of the wall model is a 1D heat transfer equation.
+The wall solves one-dimensional heat conduction with spatially varying properties:
 
 $$
-\rho_fC_f\frac{dT_{f}}{dt} = k_f\frac{d^2T_f}{dx^2}
+\rho c_p \frac{\partial T}{\partial t}
+= \frac{\partial}{\partial x}\left(k\frac{\partial T}{\partial x}\right)
 $$
 
-where $\rho_f$, $C_f$, and $k_f$ are the fabric specific heat, conductivity and density.
+Here, $\rho$ is density, $c_p$ is specific heat and $k$ is conductivity.
 
 #### Discretization
 
-The wall is solved using a 1-D discretization across the thickness using 9 interior nodes plus added nodes for *resistor materials* like air gaps. 
+The solver uses finite volumes aligned with material layers. `n` sets a target cell width from the total solid thickness. Each solid layer has at least one cell, so `wall.n` is the resulting cell count. Layer thicknesses, conductivities and heat capacities remain unchanged. `wall.x` contains the two surface positions and the cell centers; spacing is not generally uniform.
 
-The governing equation is discretized using a forward Euler method in time and a central differencing scheme. For interior nodes, this gives:
-
-$$
-\rho_f C_f\frac{T_i^{t+1} - T_i^t}{\Delta t} = k_f \frac{T_{i-1}^t - 2 T_i^t + T_{i+1}^t}{\Delta x ^ 2}
-$$
-
-where $\rho_f$, $C_f$, and $k_f$ are the wall density, heat capacity, and conductivity, respectively. $T_i^t$ is the temperature of interior node $i$ at time $t$. Solving for $T_i^{t+1}$ gives:
+Adjacent cells share a conductance per unit area:
 
 $$
-T_i^{t+1}  = \frac{k_f \Delta t}{\rho_f C_f \Delta x ^ 2} (T_{i-1}^t - 2 T_i^t + T_{i+1}^t) + T_i^t
+G_{i,i+1} = \left(\frac{\Delta x_i}{2k_i} + R_{\mathrm{gap}} + \frac{\Delta x_{i+1}}{2k_{i+1}}\right)^{-1}
 $$
+
+The gap resistance is zero where the solid layers touch. Using the same conductance in both cells conserves heat across each interface. The implicit update is:
+
+$$
+(\rho c_p\Delta x)_i\frac{T_i^{t+1}-T_i^t}{\Delta t}
+=G_{i-1,i}(T_{i-1}^{t+1}-T_i^{t+1})+G_{i,i+1}(T_{i+1}^{t+1}-T_i^{t+1})
+$$
+
+The first and last cells use the surface balances below. With `implicit=False`, fluxes are evaluated at the start of the step. The explicit solver rejects timesteps that exceed its stability bound, including after a change in wind speed. It does not increase material density to stabilize a run.
 
 ### Surface Energy Balance
 
-The energy balance at the surface of the wall is
+Each massless surface balances conduction, convection and applied radiation:
 
 $$
-E_k + E_h + E_r = 0
+G_s(T_1-T_s)+h(T_{\mathrm{air}}-T_s)+q_{\mathrm{rad}}=0
 $$
 
-where $E_k$, $E_h$, and $E_r$ is the energy flux towards the wall's surface from conduction, convection, and radiation. This energy balance gives:
+Here, $G_s$ includes the adjacent half-cell resistance and any air gap between that cell and the surface. Radiation is in W/m² and positive into the surface. The surface temperature is:
 
 $$
--k_fA_f\frac{dT_f}{dx} + hA_f(T_{int} - T_f) + E_r = 0
+T_s=\frac{G_sT_1+hT_{\mathrm{air}}+q_{\mathrm{rad}}}{G_s+h}
 $$
 
-where $k_f$, $A_f$, and $T_f$ are the fabric conductivity, area, and temperature, respectively. $T_{int}$ is the air temperature next to the wall. Dividing by $A_f$ and discretizing to an interior node with temperature $T_1$ at a distance $\Delta x$ inside the wall gives:
-
-$$
-k_f\frac{T_1 - T_f}{\Delta x} + h(T_{int} - T_f) + \frac{E_r}{A_f} = 0
-$$
-
-Then solving for $T_f$:
-
-$$
-T_f = \frac{T_{int} + \frac{k_f}{h\Delta x}T_1 + \frac{E_r}{hA_f}}{1 + \frac{k_f}{h\Delta x}}
-$$
+The wind-adjusted coefficient is recalculated each step and used in both the wall solve and the convective power returned to the adjoining air. The building's radiation calculation and damping supply the applied radiation.
 
 ### Construction
 
@@ -136,11 +130,24 @@ Each material is specified with the following properties:
 2) Conductivity $[W/(m.K)]$
 3) Density $[kg/m^3]$
 4) Specific Heat $[J/(kg.K)]$
-5) Thermal Resistance $[W/(m^2.K)]$
-	- Thermal resistance is easier to find for some materials (e.g., air gaps) where the exact thermal properties are not listed. In this case, the model assigns the thickness to be the discretization size and assigns one node in the air gap. The conductivity is then calculated by dividing this assigned thickness by the thermal resistance. The density is set to 12 $kg/m^3$ to give a large enough timestep, and the specific heat is set to 1005  $J/(kg.K)$, the same as air. 
+5) Thermal Resistance $[m^2.K/W]$
+
+`Material:AirGap` layers use their specified resistance without storage cells or artificial heat capacity. If no physical thickness is specified, the gap has zero plotting width. At least one solid layer is required.
 
 ### Surface Properties
 Each wall has the convection coefficient $h$ and radiative absorptivity $\alpha$ specified at both the front and back surfaces.
+
+### Solver checks
+
+Run the physical regression checks in the project Python environment:
+
+```sh
+python -m unittest discover -s tests -v
+```
+
+These cover steady heat flow, transient storage, surface balances, changing wind, air gaps, ground boundaries and convergence toward the analytical homogeneous-slab solution.
+
+`scripts/compare_wall_solver.py` reproduces the short Burbank diagnostic using an EnergyPlus case directory containing `surface_data.csv` and `results/eplusout.sql`. Pass `--baseline-wall` with an older `WallSimulation.py` to compare solvers. Results are saved in `analysis/energyplus_wall_fix`. This comparison uses the original 5,000 weather samples at 30-second spacing and is not a validation with matched warm-up or boundary conditions.
 
 ## Ventilation
 There are a few specific ventilation models implemented that I used to compare with the homework, but I am currently not running ventilation in the model.

@@ -1,199 +1,163 @@
 import numpy as np
-from model.utils import *
+from model.utils import WallSides
+
 
 def convectionDOE2(h_nat, V, R_f):
-    """
-    Calculate the convection coefficient using the DOE-2 method
-    """
+    """Calculate the convection coefficient using the DOE-2 method."""
     alpha = np.mean([2.38, 2.86])
     beta = np.mean([0.617, 0.89])
     return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V**beta)**2)**0.5
-    
-def processMaterials(material_df, n, dt = None, verbose = True):
-    """
-    Process pandas df of materials that make up wall
-    """
 
+
+def processMaterials(material_df, n, dt=None, verbose=True):
+    """Assign cells to layers without changing physical material properties.
+
+    ``n`` sets a target cell width from the total solid thickness. Each solid
+    layer has at least one cell, so the actual count can differ from ``n``.
+    Air gaps retain their specified resistance and have no storage cells.
+    ``dt`` and ``verbose`` remain accepted for existing notebook calls; material
+    heat capacity is never increased to accommodate an explicit timestep.
+    """
+    if not isinstance(n, (int, np.integer)) or n < 1:
+        raise ValueError("n must be a positive integer")
     material_df = material_df.copy()
-    th = np.sum(material_df["Thickness"])
-    delx = th / (n + 1) # set delx to evenly divide the thickness
-    material_df["n"] = None
-    material_df.reset_index(drop = False, inplace = True)
-    for i, (index, row) in enumerate(material_df.iterrows()):
-        if row["key"] == "Material:AirGap":
-            n += 1 # add node in air gap
-            material_df.loc[index, "Thickness"] = delx # just place one point in the air gap
-            material_df.loc[index, "Conductivity"] = material_df.loc[index, "Thickness"] / material_df.loc[index, "Thermal_Resistance"] # convert R value
-            material_df.loc[index, "Density"] = 1.293 # * 50 # large enough for reasonable time step (50X)
-            material_df.loc[index, "Specific_Heat"] = 1005 # specific heat of air
-            material_df.loc[index, "n"] = 1
-        else: # make sure material thicknesses align with spacial discretization and adjust properties accordingly
-            nMat = max([1, round(material_df.loc[index, "Thickness"] / delx)]) # make sure n is at least 1
-            material_df.loc[index, "n"] = nMat
-            new_thickness = nMat * delx
-            
-            # Store original thermal resistance
-            original_R = material_df.loc[index, "Thickness"] / material_df.loc[index, "Conductivity"]
-            original_thermal_mass = material_df.loc[index, "Thickness"] * material_df.loc[index, "Density"] * material_df.loc[index, "Specific_Heat"]
-
-            # Update thickness
-            material_df.loc[index, "Thickness"] = new_thickness
-            # Recalculate conductivity to preserve R-value
-            material_df.loc[index, "Conductivity"] = new_thickness / original_R
-            # Adjust density to preserve thermal mass
-            material_df.loc[index, "Density"] = original_thermal_mass / (new_thickness * material_df.loc[index, "Specific_Heat"])
-            
-            material_df.loc[index, "Thermal_Resistance"] = original_R # Store the preserved R-value
-            
-        if dt is not None:
-            densityMargin = 1.1
-            densityMin = densityMargin * dt * material_df.loc[index, "Conductivity"] / (delx**2 * material_df.loc[index, "Specific_Heat"])
-            if densityMin > material_df.loc[index, "Density"]:
-                if verbose:
-                    print(f"WARNING: Material {material_df['index'][index]} has density of {material_df.loc[index, 'Density']} but will be adjusted to {densityMin} for time step {dt} ({int(densityMin/material_df.loc[index, 'Density'])}X)")
-                material_df.loc[index, "Density"] = densityMin
-    material_df.set_index("index", inplace = True)
-    material_df["depth"] = material_df["Thickness"].cumsum()
-
+    gaps = material_df['key'].eq('Material:AirGap').to_numpy()
+    solids = ~gaps
+    if not solids.any():
+        raise ValueError("A wall must contain at least one solid material layer")
+    for field in ['Thickness', 'Conductivity', 'Density', 'Specific_Heat']:
+        values = material_df[field].to_numpy(dtype=float)[solids]
+        if not np.all(np.isfinite(values) & (values > 0)):
+            raise ValueError(f"Solid material {field} must be finite and positive")
+    gap_r = material_df['Thermal_Resistance'].to_numpy(dtype=float)[gaps]
+    if not np.all(np.isfinite(gap_r) & (gap_r > 0)):
+        raise ValueError("Air gap thermal resistance must be finite and positive")
+    thickness = material_df['Thickness'].to_numpy(dtype=float)
+    target_width = thickness[solids].sum() / n
+    counts = np.zeros(len(material_df), dtype=int)
+    counts[solids] = np.maximum(1, np.rint(thickness[solids] / target_width)).astype(int)
+    resistance = material_df['Thermal_Resistance'].to_numpy(dtype=float, copy=True)
+    resistance[solids] = thickness[solids] / material_df['Conductivity'].to_numpy(dtype=float)[solids]
+    material_df['n'] = counts
+    material_df['Thermal_Resistance'] = resistance
+    material_df['depth'] = material_df['Thickness'].fillna(0).cumsum()
     return material_df
 
 
 class WallSimulation:
+    """One-dimensional finite-volume wall with massless surface balances.
+
+    Temperatures in ``T`` are cell-center values. ``T_prof`` and ``x`` include
+    both surface values for the building and plotting interfaces. Conductances
+    and fluxes are per unit area; ``timeStep`` returns convective power to the
+    adjoining air in W (end-of-step for implicit, start-of-step for explicit).
+    Applied radiation is positive into each surface.
+    """
+
     def __init__(self, **kwargs):
+        expected = {'X', 'Y', 'material_df', 'h', 'roughness', 'absorptivity',
+                    'n', 'delt', 'implicit'}
+        if set(kwargs) != expected:
+            raise ValueError(f"Invalid keyword arguments, expected {expected}")
         self.__dict__.update(kwargs)
-        expected_kwards = set(["X", "Y", "material_df", "h", "roughness", "absorptivity", "n", "delt", "implicit"])
-        if set(kwargs.keys()) != expected_kwards:
-            raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
-        # Constants
-        self.Af = self.X * self.Y #fabric areas
+        self.Af = self.X * self.Y
         self.processMaterialDict(self.material_df)
-        self.x = np.linspace(0, self.th, self.n + 2)
 
-    def processMaterialDict(self, material_df, verbose = False):
-        if self.implicit:
-            dt = None
-        else:
-            dt = self.delt
-        material_df = processMaterials(material_df, self.n, dt = dt, verbose = verbose)
-        # self.n  = int(material_df["n"].sum())
-        self.th = np.sum(material_df["Thickness"])
-        self.delx = self.th / (self.n + 1) # set delx to evenly divide the thickness
-        self.kfs = np.zeros(self.n) #= 2300 #density of fabric
-        self.rhofs = np.zeros(self.n) #= 750 #specific heat capacity of fabric
-        self.Cfs = np.zeros(self.n) #= 0.8 #thermal conductivity of fabric
+    def processMaterialDict(self, material_df, verbose=False):
+        self.material_df = processMaterials(material_df, self.n, verbose=verbose)
+        widths, centers, resistance_centers, ks, densities, heat_capacities = [], [], [], [], [], []
+        depth = resistance = 0.0
+        for _, layer in self.material_df.iterrows():
+            thickness = 0.0 if np.isnan(layer['Thickness']) else layer['Thickness']
+            count = int(layer['n'])
+            if count:
+                dx = thickness / count
+                for j in range(count):
+                    widths.append(dx)
+                    centers.append(depth + (j + 0.5) * dx)
+                    resistance_centers.append(resistance + (j + 0.5) * dx / layer['Conductivity'])
+                    ks.append(layer['Conductivity'])
+                    densities.append(layer['Density'])
+                    heat_capacities.append(layer['Specific_Heat'])
+            depth += thickness
+            resistance += layer['Thermal_Resistance']
+        self.n = len(widths)
+        self.th = depth
+        self.x = np.r_[0.0, centers, depth]
+        self.cell_widths = np.array(widths)
+        self.kfs = np.array(ks)
+        self.rhofs = np.array(densities)
+        self.Cfs = np.array(heat_capacities)
+        self.capacity = self.cell_widths * self.rhofs * self.Cfs  # J/(m2 K)
+        self.total_resistance = resistance
+        # Half-cell resistances plus any intervening massless air gaps.
+        self.link_conductance = 1 / np.diff(resistance_centers)
+        self.surface_conductance = WallSides(
+            1 / resistance_centers[0],
+            1 / (resistance - resistance_centers[-1]))
+        self.K = np.zeros((self.n, self.n))
+        for i, conductance in enumerate(self.link_conductance):
+            self.K[i, i] += conductance
+            self.K[i + 1, i + 1] += conductance
+            self.K[i, i + 1] -= conductance
+            self.K[i + 1, i] -= conductance
 
-        depth = self.delx / 2
-        for i in range(self.n):
-            depth += self.delx
-            material = material_df[material_df["depth"] >= depth].iloc[0]
-            self.kfs[i] = material["Conductivity"]
-            self.rhofs[i] = material["Density"]
-            self.Cfs[i] = material["Specific_Heat"]
-
-        self.material_df = material_df
-
-    def initialize(self, delt, TfF, TfB, windSpeed=0, verbose = False):
-        self.windSpeed = windSpeed
+    def _update_convection(self):
         self.hCalced = WallSides(
-            front=convectionDOE2(self.h.front, self.windSpeed, self.roughness.front),
-            back=convectionDOE2(self.h.back, self.windSpeed, self.roughness.back)
-        )
-        # Scaling factors
-        self.lambda_vals = (delt / self.delx**2) * self.kfs / (self.rhofs * self.Cfs)
-        if verbose:
-            i_max = np.argmax(self.lambda_vals)
-            # print(f"maximum time step: {delt/self.lambda_vals[i_max]} at node {i_max}")
-        # create error to catch timestep that is too large
-        if self.implicit == False:
-            try:
-                assert np.min(delt/self.lambda_vals) > delt
-            except:
-                raise ValueError("Time step too large for stability")
-        self.lambda_bound = WallSides()
-        self.lambda_bound.front = self.kfs[0] / (self.h.front * self.delx)
-        self.lambda_bound.back = self.kfs[-1] / (self.h.back * self.delx)
+            convectionDOE2(self.h.front, self.windSpeed, self.roughness.front),
+            convectionDOE2(self.h.back, self.windSpeed, self.roughness.back))
+        for h in [self.hCalced.front, self.hCalced.back]:
+            if not np.isfinite(h) or h < 0:
+                raise ValueError("Convection coefficients must be finite and nonnegative")
 
-        # Wall setup
-        self.n = round(self.th / self.delx) - 1
-        A_matrix = np.zeros((self.n, self.n))
-        for i in range(self.n):
-            A_matrix[i, i] = 1 - 2 * self.lambda_vals[i]
-            if i < self.n - 1:
-                A_matrix[i, i + 1] = self.lambda_vals[i]
-            if i > 0:
-                A_matrix[i, i - 1] = self.lambda_vals[i]
-
-        A_matrix[0, 0] += self.lambda_vals[0] * self.lambda_bound.front / (1 + self.lambda_bound.front)
-        A_matrix[-1, -1] += self.lambda_vals[-1] * self.lambda_bound.back / (1 + self.lambda_bound.back)
-
-        self.A = A_matrix
-
-        # Setup matrices differently for implicit method
-        I = np.eye(self.n)
-        self.A_implicit = I + np.zeros((self.n, self.n))  # Will fill with coefficients
-        for i in range(self.n):
-            self.A_implicit[i, i] = 1 + 2 * self.lambda_vals[i]
-            if i < self.n - 1:
-                self.A_implicit[i, i + 1] = -self.lambda_vals[i]
-            if i > 0:
-                self.A_implicit[i, i - 1] = -self.lambda_vals[i]
-
-        # Adjust boundary conditions for implicit method
-        self.A_implicit[0, 0] -= self.lambda_vals[0] * self.lambda_bound.front / (1 + self.lambda_bound.front)
-        self.A_implicit[-1, -1] -= self.lambda_vals[-1] * self.lambda_bound.back / (1 + self.lambda_bound.back)
-
-        # ###########################
-        # # Plot the color plot
-        # import plotly.graph_objs as go
-        # import plotly.express as px
-        # # Create a heatmap figure
-        # fig = go.Figure(data=go.Heatmap(z=self.A, colorscale='Viridis'))
-
-        # # Update layout
-        # fig.update_layout(
-        #     title='Heatmap of Matrix',
-        #     xaxis_title='X-axis',
-        #     yaxis_title='Y-axis'
-        # )
-
-        # # Show the figure
-        # fig.show()
-        # ###########################
-
-        self.b = np.zeros(self.n)
-        self.T_prof = np.linspace(TfF, TfB, self.n + 2) #create a uniform temperature profile between Tff and Tfb of length n
-        self.T = self.T_prof[1:-1] #remove the boundary temperatures from the temperature profile
-
-        self.Erad = WallSides(0, 0) #radiative heat flux at front (area averaged)
+    def initialize(self, delt, TfF, TfB, windSpeed=0, verbose=False):
+        if not np.isfinite(delt) or delt <= 0:
+            raise ValueError("Time step must be finite and positive")
+        self.delt = delt
+        self.windSpeed = windSpeed
+        self._update_convection()
+        self.Erad = WallSides(0.0, 0.0)
+        self.T = TfF + (TfB - TfF) * self.x[1:-1] / self.th
+        self.T_prof = self.getWallProfile(TfF, TfB)
 
     def timeStep(self, TintF, TintB):
-        # self.windSpeed = np.mean([0, 6])
-        self.hCalced = WallSides(
-            front=convectionDOE2(self.h.front, self.windSpeed, self.roughness.front),
-            back=convectionDOE2(self.h.back, self.windSpeed, self.roughness.back)
-        )
-        TintRadF = TintF + self.Erad.front / self.hCalced.front
-        TintRadB = TintB + self.Erad.back / self.hCalced.back
-        self.b[0] = self.lambda_vals[0] * TintRadF / (1 + self.lambda_bound.front)
-        self.b[-1] = self.lambda_vals[-1] * TintRadB / (1 + self.lambda_bound.back)
-        # self.T = np.dot(self.A, self.T) + self.b # explicit solve
-        self.T = np.linalg.solve(self.A_implicit, self.T + self.b) # implicit solve
-        self.T_prof = self.getWallProfile(TintRadF, TintRadB)
-
-        Ef = WallSides()
-        Ef.front = self.Af * (self.T_prof[0] - TintF) * self.hCalced.front
-        Ef.back = self.Af * (self.T_prof[-1] - TintB) * self.hCalced.back
-        return Ef
+        self._update_convection()
+        old_profile = self.getWallProfile(TintF, TintB) if not self.implicit else None
+        matrix = self.K.copy()
+        source = np.zeros(self.n)
+        for index, side, air in [(0, 'front', TintF), (-1, 'back', TintB)]:
+            g = getattr(self.surface_conductance, side)
+            h = getattr(self.hCalced, side)
+            radiation = getattr(self.Erad, side)
+            fraction = g / (g + h)
+            effective_h = fraction * h
+            matrix[index, index] += effective_h
+            source[index] += effective_h * air + fraction * radiation
+        mass_rate = self.capacity / self.delt
+        if self.implicit:
+            self.A_implicit = matrix + np.diag(mass_rate)
+            self.b = source
+            self.T = np.linalg.solve(self.A_implicit, mass_rate * self.T + source)
+        else:
+            # A sufficient monotonicity bound, checked again when wind changes.
+            if np.any(self.delt * np.diag(matrix) > self.capacity):
+                raise ValueError("Time step too large for explicit wall stability")
+            self.T = self.T + (source - matrix @ self.T) / mass_rate
+        self.T_prof = self.getWallProfile(TintF, TintB)
+        flux_profile = self.T_prof if self.implicit else old_profile
+        return WallSides(
+            self.Af * self.hCalced.front * (flux_profile[0] - TintF),
+            self.Af * self.hCalced.back * (flux_profile[-1] - TintB))
 
     def getWallProfile(self, TintF, TintB):
-        T_prof = np.zeros(self.n + 2)
-        T_prof[1:-1] = self.T
-        T_prof[0] = self.get_Tf(self.T[0], TintF, self.lambda_bound.front)
-        T_prof[-1] = self.get_Tf(self.T[-1], TintB, self.lambda_bound.back)
-        return T_prof
-
-    def get_Tf(self, T1, Tint, lambda_bound):
-        Tf = (lambda_bound * T1 + Tint) / (1 + lambda_bound)
-        if np.isnan(Tf) == True:
-            raise ValueError('Tf is nan')
-        return Tf
+        """Return surfaces and cell centers using air temperatures and applied radiation."""
+        surfaces = []
+        for index, side, air in [(0, 'front', TintF), (-1, 'back', TintB)]:
+            g = getattr(self.surface_conductance, side)
+            h = getattr(self.hCalced, side)
+            radiation = getattr(self.Erad, side)
+            surfaces.append((g * self.T[index] + h * air + radiation) / (g + h))
+        profile = np.r_[surfaces[0], self.T, surfaces[1]]
+        if not np.all(np.isfinite(profile)):
+            raise ValueError("Wall temperature is not finite")
+        return profile

@@ -1,0 +1,49 @@
+{
+  "300.0": {
+    "current": -188.34299999999985,
+    "consistent_thermal_coefficient": -143.343
+  },
+  "459.27": {
+    "current": -68.89049999999986,
+    "consistent_thermal_coefficient": 0.0
+  },
+  "black_surface": {
+    "edge_flux": -113.34300000000002,
+    "reported_is_nan": true
+  },
+  "order_permutations": {
+    "CR": {
+      "permutations": 120,
+      "exceptions": 0,
+      "max_flux_change": 5.366690394483612
+    },
+    "SS": {
+      "permutations": 720,
+      "exceptions": 0,
+      "max_flux_change": 0.5696218579102115
+    },
+    "DR": {
+      "permutations": 5040,
+      "exceptions": 0,
+      "max_flux_change": 8.923719326271339
+    },
+    "CV": {
+      "permutations": 120,
+      "exceptions": 108,
+      "max_flux_change": 1.3500311979441904e-13
+    }
+  },
+  "partition_network_total_W": 2.0463630789890885e-12,
+  "partition_first_step": {
+    "total_room_radiation_W": -0.5685320343674647,
+    "missing_face_W": 0.5685320343675251,
+    "front_flux": 0.0,
+    "back_flux": 0.05831097788384872
+  },
+  "both_face_helper": [
+    10,
+    0
+  ],
+  "vent_scalar": "AttributeError: 'float' object has no attribute 'size'",
+  "vent_vector": "IndexError: boolean index did not match indexed array along axis 0; size of axis is 1 but size of corresponding boolean axis is 3"
+}
