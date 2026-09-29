@@ -192,8 +192,10 @@ def runMyBEM(
     bG.updateNodes({"rad_kwargs": rad_kwargs_OD}, nodes=["OD"])
     bG.updateNodes({"rad_kwargs": rad_kwargs_FL}, nodes=["SS", "DR", "CV", "CR"])
 
-    for r in ["CR", "DR"]:
-        bG.G.nodes[r]["room_kwargs"]["V"] *= 2
+    for r in interiorRooms:
+        floor = bG.G.edges[r, "FL"]
+        floor_area = floor["wall_kwargs"]["X"] * floor["wall_kwargs"]["Y"] * floor["weight"]
+        bG.G.nodes[r]["room_kwargs"]["V"] = floor_area * wall_kwargs["Y"]
 
     build_sim = bs.BuildingSimulation(**sim_kwargs)
     build_sim.initialize(bG, verbose=verbose)

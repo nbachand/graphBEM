@@ -28,3 +28,11 @@ class BuildingPhysicsTests(unittest.TestCase):
                     if getattr(edge['nodes'], side) == room:
                         power += edge['wall'].Af * edge['weight'] * getattr(edge['radEApplied'], side)
             np.testing.assert_allclose(power, 0, atol=1e-8)
+
+    def test_air_volume_matches_floor_plan(self):
+        sim = example()
+        for room, expected in dict(CR=48, SS=48, DR=96, CV=96).items():
+            floor = sim.bG.G.edges[room, 'FL']
+            volume = sim.bG.G.nodes[room]['room'].V
+            self.assertEqual(volume, expected)
+            self.assertEqual(volume, floor['wall'].Af * floor['weight'] * 3)
