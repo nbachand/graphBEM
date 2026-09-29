@@ -64,3 +64,13 @@ build/
 *.prj
 *.sbn
 *.sbx
+*.shp
+*.shx
+*.shp.xml
+
+# Large external / derived data
+LES/
+dfFull.csv
+
+# Scratch MC results written by runInJupyter test runs (resultsKey="temp")
+resultsMC/*_temp.csv
