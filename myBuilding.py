@@ -44,7 +44,6 @@ def runMyBEM(
 
     materials = materials.copy()
     weather_data = weather_data.copy()
-    epsilonSky = 0.9
     outputs = {}
     wallMaterial = materials["wall"]
     partitionMaterial =  materials["partition"]
@@ -72,13 +71,15 @@ def runMyBEM(
     wind_speed_RF = adjustWindSpeed(wind_speed, latitude, z0_new=0.3, z=4.5)
     wind_speed_OD = adjustWindSpeed(wind_speed, latitude, z0_new=0.3, z=1.5, wind_scaling=0.5)
 
-    hrad = weather_data["Horizontal Shortwave Radiation"].values 
-    hrad += weather_data["Horizontal Sky Longwave Radiation"].values
-    hrad += weather_data["Horizontal Surfaces Longwave Radiation"].values * epsilonSky / alphaRoof #adjusted because treated as sky in rad calc
-
-    vrad = weather_data["Vertical Shortwave Radiation"].values 
-    vrad += weather_data["Vertical Sky Longwave Radiation"].values
-    vrad += weather_data["Vertical Surfaces Longwave Radiation"].values * epsilonSky / alphaWalls #adjusted because treated as sky in rad calc
+    radiation = {}
+    for node, prefix in [("RF", "Horizontal"), ("OD", "Vertical")]:
+        radiation[node] = {
+            "shortwave": weather_data[prefix + " Shortwave Radiation"].to_numpy(copy=True),
+            "longwave": (weather_data[prefix + " Sky Longwave Radiation"]
+                         + weather_data[prefix + " Surfaces Longwave Radiation"]).to_numpy(),
+        }
+    hrad = radiation["RF"]["shortwave"] + radiation["RF"]["longwave"]
+    vrad = radiation["OD"]["shortwave"] + radiation["OD"]["longwave"]
 
     # Plotting the weather data
     if makePlots:
@@ -144,10 +145,7 @@ def runMyBEM(
             'RF': wind_speed_RF,
             'OD': wind_speed_OD
         },
-        "radG": {
-            'RF': hrad,
-            'OD': vrad
-        }
+        "radG": radiation
     }
     wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "roughness": WallSides(0,0), "absorptivity" : alphaWalls, "n": n, "implicit": implicit}
     wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior_nat), "roughness": WallSides(0,wallRoughness), "absorptivity" : alphaWalls,  "n": n, "implicit": implicit}
@@ -348,7 +346,7 @@ def runMyBEM(
                 plt.plot(times.index.values, d['radECalc'].front, color = colors[c], linestyle = linetypes[0])
                 plt.plot(times.index.values, d['radEApplied'].front, color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
-        plt.plot(times.index.values, build_sim.radG["RF"], label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
+        plt.plot(times.index.values, build_sim.radG["RF"]["shortwave"], label="Incident Shortwave", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.ylabel('Energy Flux [W/m^2]')
         plt.title("Wall Radiative Fluxes")
@@ -377,7 +375,7 @@ def runMyBEM(
                 plt.plot(times.index.values, d['radECalc'].front, color = colors[c], linestyle = linetypes[0])
                 plt.plot(times.index.values, d['radEApplied'].front, color = colors[c], linestyle = linetypes[1])
                 c = (c + 1) % len(colors)
-        plt.plot(times.index.values, build_sim.radG["RF"], label="Solar Radiation", color = 'k', linestyle = (0, (1, 5)))
+        plt.plot(times.index.values, build_sim.radG["RF"]["shortwave"], label="Incident Shortwave", color = 'k', linestyle = (0, (1, 5)))
         tempPlotBasics()
         plt.ylabel('Energy Flux [W/m^2]')
         plt.title("Roof Radiative Fluxes")

@@ -4,7 +4,7 @@ import networkx as nx
 from model.utils import *
 from model.BuildingGraph import draw
 
-epsilonSky = 0.9
+EXTERIOR_EMISSIVITY = 0.9
 
 def getVFAlignedRectangles(X, Y, L):
     Xbar = X / L
@@ -46,8 +46,9 @@ class Radiation:
         self.sigma = 5.67e-8
         self.storyHeight = 3
 
-    def initialize(self, roomNode:nx.classes.coreviews.AtlasView, solarGain=0, drawGraphs = False):
-        self.solarGain = solarGain
+    def initialize(self, roomNode:nx.classes.coreviews.AtlasView, solarGain=0, drawGraphs=False, longwaveGain=0):
+        self.solarGain = solarGain  # incident shortwave, W/m2
+        self.longwaveGain = longwaveGain  # incident sky + ground longwave, W/m2
         self.roomNode = dict(roomNode)
         surfaces = list(self.roomNode.keys())
         self.G = nx.Graph()
@@ -74,7 +75,9 @@ class Radiation:
                 # d["epsilon_over_alpha"] = 1 # dont think this is used
             else:
                 wall = self.roomNode[n]["wall"]
-                alpha = wall.absorptivity # opaque, diffuse, gray surface
+                alpha = wall.absorptivity # interior grey-surface emissivity; exterior solar absorptivity
+                if not np.isfinite(alpha) or not 0 < alpha <= 1:
+                    raise ValueError("Surface absorptivity must be in (0, 1]")
                 d["X"] = wall.X # dimension used in view factor  
                 d["Y"] = wall.Y # dimension used in view factor
                 d["A"] = d["X"] * d["Y"] * self.roomNode[n]["weight"] # true area
@@ -83,7 +86,7 @@ class Radiation:
                     d["T_index"] = 0 # arbitrary for partition walls which should be symetrical
                     d["A"] *= 2
                 if self.solveType == "sky":
-                    d["epsilon_over_alpha"] = epsilonSky / alpha # emmisivity to sky is ~0.9
+                    d["epsilon_over_alpha"] = EXTERIOR_EMISSIVITY / alpha # emmisivity to sky is ~0.9
                 else:
                     d["epsilon_over_alpha"] = 1
             d["boundaryResistance"] = (1 - alpha) / (alpha * d["A"])
@@ -117,22 +120,23 @@ class Radiation:
     def timeStep(self):
         if self.solveType == None:
             return pd.Series()
-        bR = pd.Series(0.0, index = self.A.index)
-        Eb = pd.Series(0.0, index = self.A.index)
-        A = pd.Series(0.0, index = self.A.index)
-        for n, d in self.G.nodes(data=True):
-            if n == "sky":
-                Eb[n] = self.solarGain
-                A[n] = 1
-            else: 
-                wall = self.roomNode[n]["wall"]
-                T = wall.T_prof[d["T_index"]]
-                Eb[n] = self.sigma * T**4
-                Eb[n] *= d["epsilon_over_alpha"] # use a modified black body radiation if epsilon != alpha
-                A[n] = d['A']
-            bR[n] = d["boundaryResistance"]
-        J = np.linalg.solve(self.A, Eb)
-        J = pd.Series(J, index = self.A.index)
-        q = (J - Eb) / bR
-        E = q / A #area averaged radiative heat flux
-        return E
+        if self.solveType == "sky":
+            # Spectral bands must remain separate: sky emissivity is already
+            # represented by the weather-file infrared irradiance.
+            return pd.Series({
+                n: self.roomNode[n]["wall"].absorptivity * self.solarGain
+                   + EXTERIOR_EMISSIVITY * (self.longwaveGain
+                       - self.sigma * self.roomNode[n]["wall"].T_prof[d["T_index"]]**4)
+                for n, d in self.G.nodes(data=True) if n != "sky"
+            })
+        Eb = np.array([self.sigma * self.roomNode[n]["wall"].T_prof[d["T_index"]]**4
+                       for n, d in self.G.nodes(data=True)])
+        J = pd.Series(np.linalg.solve(self.A, Eb), index=self.A.index)
+        # Edge heat flows remain finite when emissivity=1 and surface R=0.
+        # Equal and opposite edge powers also conserve enclosure radiation.
+        power = pd.Series(0.0, index=J.index)
+        for i, j, edge in self.G.edges(data=True):
+            q = (J[j] - J[i]) / edge["radianceResistance"]
+            power[i] += q
+            power[j] -= q
+        return power / pd.Series({n: d["A"] for n, d in self.G.nodes(data=True)})

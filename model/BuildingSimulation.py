@@ -25,7 +25,15 @@ class BuildingSimulation():
         for node in self.windSpeed:
             self.windSpeed[node] = getEquivalentTimeSeries(self.windSpeed[node], self.times)
         for node in self.radG:
-            self.radG[node] = getEquivalentTimeSeries(self.radG[node], self.times)
+            forcing = self.radG[node]
+            if isinstance(forcing, dict):
+                if set(forcing) != {"shortwave", "longwave"}:
+                    raise ValueError("Radiation forcing needs shortwave and longwave bands")
+                self.radG[node] = {band: getEquivalentTimeSeries(values, self.times)
+                                   for band, values in forcing.items()}
+            else:
+                # Legacy scalar/array inputs denote incident shortwave only.
+                self.radG[node] = getEquivalentTimeSeries(forcing, self.times)
         self.radDamping =  self.delt / (1 + self.delt)# 0 damping factor for radiation
 
     def initialize(self, bG:bg.BuildingGraph, verbose = False):
@@ -94,9 +102,16 @@ class BuildingSimulation():
             # Solve Radiation
             for n, d in self.bG.G.nodes(data=True):
                 if n in self.radG:
-                    d["rad"].solarGain = self.radG[n][c]
+                    forcing = self.radG[n]
+                    if isinstance(forcing, dict):
+                        d["rad"].solarGain = forcing["shortwave"][c]
+                        d["rad"].longwaveGain = forcing["longwave"][c]
+                    else:
+                        d["rad"].solarGain = forcing[c]
+                        d["rad"].longwaveGain = 0
                 else:
                     d["rad"].solarGain = 0
+                    d["rad"].longwaveGain = 0
                 E = d["rad"].timeStep()
                 E = E.dropna()
                 for wall, EWall in E.items():
