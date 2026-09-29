@@ -22,6 +22,7 @@ class VentilationTests(unittest.TestCase):
         np.testing.assert_allclose(values, values[0], atol=1e-12)
         v = vent()
         self.assertEqual(v.get_Cd(0), 0)
+        self.assertLess(v.get_Cd(1e-8), 1e-7)
         self.assertAlmostEqual(v.get_Cd(np.pi/2), .611)
 
     def test_scalar_vector_schedule_and_heat_sign(self):

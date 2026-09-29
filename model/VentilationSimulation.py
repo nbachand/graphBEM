@@ -45,9 +45,16 @@ class VentilationSimulation:
         return np.where(z > h, effective, self.W)
 
     def get_Aeff(self, alpha):
-        z = np.linspace(0, self.H, 1000)
-        Wpivot = self.get_Wpivot(z, alpha)
-        return trapezoid(Wpivot, z)
+        self.get_Wpivot(np.array([0.0]), alpha)  # validate angle and dimensions
+        if alpha == 0:
+            return 0.0
+        if alpha == np.pi/2:
+            return self.H*self.W
+        h = self.H*(1-np.cos(alpha))
+        # Split at the geometry breakpoint. A uniform grid spanning both parts
+        # gives a spurious finite area as the opening angle approaches zero.
+        z = np.linspace(np.nextafter(h, self.H), self.H, 1000)
+        return h*self.W + trapezoid(self.get_Wpivot(z, alpha), z)
 
     def get_Cd(self, alpha):
         Cd0 = 0.611
