@@ -1,0 +1,182 @@
+{
+  "isothermal_exterior_radiation": {
+    "roof_alpha_075": {
+      "expected_W_m2": 0,
+      "actual_W_m2": 0.0,
+      "is_finite": true
+    },
+    "wall_alpha_070": {
+      "expected_W_m2": 0,
+      "actual_W_m2": 0.0,
+      "is_finite": true
+    },
+    "alpha_one": {
+      "expected_W_m2": 0,
+      "actual_W_m2": 0.0,
+      "is_finite": true
+    }
+  },
+  "radiation_step_response": [
+    {
+      "dt_seconds": 15,
+      "after_900s_W_m2": 100.0,
+      "effective_time_constant_seconds": 0
+    },
+    {
+      "dt_seconds": 30,
+      "after_900s_W_m2": 100.0,
+      "effective_time_constant_seconds": 0
+    },
+    {
+      "dt_seconds": 60,
+      "after_900s_W_m2": 100.0,
+      "effective_time_constant_seconds": 0
+    }
+  ],
+  "pivot_window_scale_test": [
+    {
+      "H": 1,
+      "W": 1,
+      "angle_degrees": 45,
+      "Cd": 0.521259181982232
+    },
+    {
+      "H": 2,
+      "W": 2,
+      "angle_degrees": 45,
+      "Cd": 0.521259181982232
+    },
+    {
+      "H": 4,
+      "W": 4,
+      "angle_degrees": 45,
+      "Cd": 0.521259181982232
+    }
+  ],
+  "ventilation_scalar_call": -5275.758475846589,
+  "geometry": [
+    {
+      "room": "CR",
+      "floor_area_m2": 16.0,
+      "air_volume_m3": 48.0,
+      "implied_height_m": 3.0,
+      "radiation_height_m": 3
+    },
+    {
+      "room": "SS",
+      "floor_area_m2": 16.0,
+      "air_volume_m3": 48.0,
+      "implied_height_m": 3.0,
+      "radiation_height_m": 3
+    },
+    {
+      "room": "DR",
+      "floor_area_m2": 32.0,
+      "air_volume_m3": 96.0,
+      "implied_height_m": 3.0,
+      "radiation_height_m": 3
+    },
+    {
+      "room": "CV",
+      "floor_area_m2": 32.0,
+      "air_volume_m3": 96.0,
+      "implied_height_m": 3.0,
+      "radiation_height_m": 3
+    }
+  ],
+  "room_radiation_balance": [
+    {
+      "room": "CR",
+      "rms_net_internal_radiation_W": 5.9299407081644e-15,
+      "max_abs_net_internal_radiation_W": 3.552713678800501e-14
+    },
+    {
+      "room": "SS",
+      "rms_net_internal_radiation_W": 5.910926349883136e-15,
+      "max_abs_net_internal_radiation_W": 2.842170943040401e-14
+    },
+    {
+      "room": "DR",
+      "rms_net_internal_radiation_W": 1.2741610862050702e-14,
+      "max_abs_net_internal_radiation_W": 5.684341886080802e-14
+    },
+    {
+      "room": "CV",
+      "rms_net_internal_radiation_W": 1.0826724490860702e-14,
+      "max_abs_net_internal_radiation_W": 5.684341886080802e-14
+    }
+  ],
+  "radiation_order_test": [
+    {
+      "room": "CR",
+      "max_abs_flux_change_W_m2": 9.520162436160717e-14
+    },
+    {
+      "room": "SS",
+      "max_abs_flux_change_W_m2": 1.412203687323199e-13
+    },
+    {
+      "room": "DR",
+      "max_abs_flux_change_W_m2": 1.0164091790443308e-13
+    },
+    {
+      "room": "CV",
+      "max_abs_flux_change_W_m2": 1.5343282200319663e-13
+    }
+  ],
+  "view_factor_sums": {
+    "CR": {
+      "SS": 0.4781781417350201,
+      "DR": 0.4781781417350201,
+      "OD": 0.47817814173502016,
+      "RF": 0.977585399606171,
+      "FL": 0.977585399606171
+    },
+    "SS": {
+      "CR": 0.4781781417350201,
+      "DR": 0.4781781417350201,
+      "CV": 0.4781781417350201,
+      "OD": 0.47817814173502016,
+      "RF": 0.9887926998030856,
+      "FL": 0.9887926998030856
+    },
+    "DR": {
+      "CR": 0.4781781417350201,
+      "SS": 0.4781781417350201,
+      "DR": 0.47817814173502005,
+      "CV": 0.4781781417350201,
+      "OD": 0.4781781417350201,
+      "RF": 0.9495671491138846,
+      "FL": 0.9495671491138846
+    },
+    "CV": {
+      "SS": 0.5361665899977334,
+      "DR": 0.5361665899977334,
+      "OD": 0.5361665899977334,
+      "RF": 0.9674511095194839,
+      "FL": 0.9674511095194839
+    }
+  },
+  "self_loop_partition": {
+    "area_one_face_m2": 9.75,
+    "area_used_by_radiation_m2": 19.5,
+    "front_max_abs_applied_W_m2": 2.873157806354644,
+    "back_max_abs_applied_W_m2": 2.873157806354644
+  },
+  "historical_sky_longwave_absorption_correction": {
+    "Horizontal": {
+      "mean_W_m2": 55.0036,
+      "max_W_m2": 60.00000000000001
+    },
+    "Vertical": {
+      "mean_W_m2": 36.66906666666668,
+      "max_W_m2": 40.000000000000014
+    }
+  },
+  "notes": [
+    "No production model code changed by this audit.",
+    "Burbank August first 5000 weather samples at 30 s, same settings as comparison.",
+    "Room radiation power sums actual applied face fluxes with areas and edge weights.",
+    "Missing physical processes are outside this audit; view-factor sums below one alone are not flagged."
+  ]
+}

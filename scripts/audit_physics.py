@@ -3,7 +3,8 @@
 Run from the repository root in the graphBEM environment:
     python scripts/audit_physics.py
 
-Writes diagnostic measurements to analysis/physics_audit.json. This is an
+Writes current measurements to analysis/physics_fixes/audit_after.json.
+The historical, pre-fix measurements remain in analysis/physics_audit.json. This is an
 investigation of existing behavior, not a regression suite that approves it.
 """
 from pathlib import Path
@@ -28,9 +29,9 @@ def sky_equilibrium(alpha, sky_fraction):
     wall = SimpleNamespace(X=4, Y=4, absorptivity=alpha, T_prof=np.array([300., 300.]))
     adjacent = {'inside': dict(wall=wall, weight=1, nodes=WallSides('inside', 'outside'))}
     rad = Radiation(solveType='sky')
-    # Exactly the shortwave + sky + adjusted ground combination in runMyBEM.
-    forcing = sky_fraction*sigma_t4 + (1-sky_fraction)*sigma_t4*.9/alpha
-    rad.initialize(adjacent, solarGain=forcing)
+    # Sky and ground have the same radiative temperature in this equilibrium test.
+    forcing = sky_fraction*sigma_t4 + (1-sky_fraction)*sigma_t4
+    rad.initialize(adjacent, solarGain=0, longwaveGain=forcing)
     with np.errstate(invalid='ignore', divide='ignore'):
         actual = float(rad.timeStep()['inside'])
     return dict(expected_W_m2=0, actual_W_m2=actual if np.isfinite(actual) else None,
@@ -50,7 +51,7 @@ def main():
         for _ in range(int(900/dt)):
             applied = (1-sim.radDamping)*100 + sim.radDamping*applied
         report['radiation_step_response'].append(dict(dt_seconds=dt, after_900s_W_m2=applied,
-            effective_time_constant_seconds=-dt/np.log(sim.radDamping)))
+            effective_time_constant_seconds=-dt/np.log(sim.radDamping) if sim.radDamping else 0))
     report['pivot_window_scale_test'] = []
     for scale in [1, 2, 4]:
         vent = VentilationSimulation(H=scale, W=scale, ventType=None, alphas=[], As=[], Ls=[])
@@ -58,7 +59,7 @@ def main():
                                                      Cd=float(vent.get_Cd(np.pi/4))))
     vent = VentilationSimulation(H=1, W=1, ventType='HWP4', alphas=[45], As=[1], Ls=[1])
     try:
-        vent.timeStep(3600, Tint=300., Tout=290.)
+        report['ventilation_scalar_call'] = float(vent.timeStep(3600, Tint=300., Tout=290.))
     except Exception as error:
         report['ventilation_scalar_call'] = type(error).__name__ + ': ' + str(error)
 
@@ -109,16 +110,17 @@ def main():
         area_used_by_radiation_m2=sim.bG.G.nodes['DR']['rad'].G.nodes['DR']['A'],
         front_max_abs_applied_W_m2=float(np.max(np.abs(loop['radEApplied'].front))),
         back_max_abs_applied_W_m2=float(np.max(np.abs(loop['radEApplied'].back))))
-    report['sky_longwave_absorption_deficit'] = {}
+    report['historical_sky_longwave_absorption_correction'] = {}
     for prefix, alpha in [('Horizontal', .75), ('Vertical', .7)]:
         deficit = (.9-alpha)*sample[prefix+' Sky Longwave Radiation']
-        report['sky_longwave_absorption_deficit'][prefix] = dict(
+        report['historical_sky_longwave_absorption_correction'][prefix] = dict(
             mean_W_m2=float(deficit.mean()), max_W_m2=float(deficit.max()))
     report['notes'] = ['No production model code changed by this audit.',
         'Burbank August first 5000 weather samples at 30 s, same settings as comparison.',
         'Room radiation power sums actual applied face fluxes with areas and edge weights.',
         'Missing physical processes are outside this audit; view-factor sums below one alone are not flagged.']
-    output = ROOT/'analysis/physics_audit.json'
+    output = ROOT/'analysis/physics_fixes/audit_after.json'
+    output.parent.mkdir(parents=True, exist_ok=True)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
     print(json.dumps(report, indent=2, allow_nan=False))

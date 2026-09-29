@@ -1,0 +1,24 @@
+{
+  "weather": "CA_BURBANK-GLNDLE-PASAD-AP_722880S_CZ2022",
+  "start": "2008-08-01 01:00:00-08:00",
+  "end": "2008-08-02 18:39:30-08:00",
+  "timestep_seconds": 30,
+  "samples": 5000,
+  "ep_case": "/Users/nicholasbachand/codes/plan2EPlus/cases/graphbem_cali/CA_BURBANK-GLNDLE-PASAD-AP_722880S_CZ2022",
+  "baseline_wall": null,
+  "baseline_sha256": null,
+  "solver_sha256": "900dc6d05ab47af32b034e26097cf499348bbcd35bc1d46fd433762c161ff881",
+  "model_revision": "002b349c9e944735495da05c0025943f31c1fb52",
+  "model_hashes": {
+    "myBuilding.py": "1c795ab7a23560432d0d7e189d4a3b681f7d2941ec05a68400748096a7973934",
+    "model/BuildingGraph.py": "f0efbf6a536381ec22df683769044bdbb09b0e52b16f032c65e2fd7b3472eae1",
+    "model/BuildingSimulation.py": "839e514966be6fecab3b79f9552bc3940a5af2690e2e75facdda5afde632c050",
+    "model/Radiation.py": "efae87f73949775b849bf8952d74a60881d80ee73b5feea916d4289694e1a1c5",
+    "model/RoomSimulation.py": "d6c9235d2b1b0ff715158504e9eec36b38f8d8ec5585477dd60adbee4b079e5e",
+    "model/VentilationSimulation.py": "cf4b370a0dab15e4a28b2b02414dce579ac2dabc1d1f76aaee906584e7cb915e",
+    "model/WallSimulation.py": "900dc6d05ab47af32b034e26097cf499348bbcd35bc1d46fd433762c161ff881",
+    "model/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "model/utils.py": "85089444a21c70b5639c9dabac6731cb1427f231eaab53c7035664a4cf28724b"
+  },
+  "note": "Short diagnostic without matched warm-up; full 15-minute intervals only. Flux RMSE in W/m2; temperature RMSE in K; h RMSE in W/(m2 K). Conduction positive toward each surface; convection/radiation positive into surface."
+}

@@ -18,6 +18,7 @@ import importlib.util
 import json
 from pathlib import Path
 import sqlite3
+import subprocess
 import sys
 from unittest.mock import patch
 
@@ -44,7 +45,7 @@ def weather_sample():
     return data[data.index.month == 8].iloc[1:].resample('30s').interpolate().iloc[:5000]
 
 
-def run_graph(sample, wall_class):
+def run_graph(sample, wall_class, return_sim=False):
     captured = []
     original_run = BuildingSimulation.run
     def capture(sim):
@@ -85,7 +86,8 @@ def run_graph(sample, wall_class):
             balances.append(dict(zone=a, boundary=b, side='storage',
                                  surface_rms=np.sqrt(np.mean(residual**2)),
                                  surface_max_abs=np.max(np.abs(residual))))
-    return pd.concat(frames, ignore_index=True), pd.DataFrame(balances)
+    result = (pd.concat(frames, ignore_index=True), pd.DataFrame(balances))
+    return (*result, sim) if return_sim else result
 
 
 def read_ep(case, year):
@@ -173,6 +175,9 @@ def main():
                     baseline_wall=str(args.baseline_wall) if args.baseline_wall else None,
                     baseline_sha256=hashlib.sha256(args.baseline_wall.read_bytes()).hexdigest() if args.baseline_wall else None,
                     solver_sha256=hashlib.sha256((ROOT/'model/WallSimulation.py').read_bytes()).hexdigest(),
+                    model_revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+                    model_hashes={str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
+                                  for p in [ROOT/'myBuilding.py', *sorted((ROOT/'model').glob('*.py'))]},
                     note='Short diagnostic without matched warm-up; full 15-minute intervals only. '
                          'Flux RMSE in W/m2; temperature RMSE in K; h RMSE in W/(m2 K). '
                          'Conduction positive toward each surface; convection/radiation positive into surface.')

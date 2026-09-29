@@ -1,0 +1,57 @@
+{
+  "budgets": {
+    "30": {
+      "max_abs_residual_W": 5.980886726320023e-06,
+      "rms_residual_W": 1.7013008798604743e-06,
+      "integrated_residual_J": -0.1558084281758454,
+      "max_abs_internal_radiation_W": 1.4210854715202004e-13,
+      "max_abs_external_power_W": 9897.346983582385
+    },
+    "15": {
+      "max_abs_residual_W": 6.318674422800541e-06,
+      "rms_residual_W": 1.6374754860525849e-06,
+      "integrated_residual_J": -0.1422618582882773,
+      "max_abs_internal_radiation_W": 1.4210854715202004e-13,
+      "max_abs_external_power_W": 9927.067278619306
+    },
+    "7.5": {
+      "max_abs_residual_W": 6.66091546008829e-06,
+      "rms_residual_W": 1.7683151738765304e-06,
+      "integrated_residual_J": -0.17363273602946538,
+      "max_abs_internal_radiation_W": 1.4210854715202004e-13,
+      "max_abs_external_power_W": 9942.027746904612
+    }
+  },
+  "convergence": [
+    {
+      "coarse_seconds": 30,
+      "fine_seconds": 15,
+      "air_rms_difference_K": 0.006387052443457582,
+      "air_max_difference_K": 0.012398394197305151,
+      "surface_rms_difference_K": 0.008646618027130489,
+      "surface_max_difference_K": 0.7750557399946842
+    },
+    {
+      "coarse_seconds": 15,
+      "fine_seconds": 7.5,
+      "air_rms_difference_K": 0.0031940725647464792,
+      "air_max_difference_K": 0.0062010690585339034,
+      "surface_rms_difference_K": 0.0038365381737021456,
+      "surface_max_difference_K": 0.12229898256987326
+    }
+  ],
+  "initial_air_K": 297.3429433333333,
+  "note": "Current corrected model; same initial and ground temperatures on every grid. Ventilation disabled; subsequent closed-window quadrature correction has no effect on this run.",
+  "model_revision": "2811102d1eb04632cd3d9516ab539ff77d34734b",
+  "model_hashes": {
+    "myBuilding.py": "1c795ab7a23560432d0d7e189d4a3b681f7d2941ec05a68400748096a7973934",
+    "model/BuildingGraph.py": "f0efbf6a536381ec22df683769044bdbb09b0e52b16f032c65e2fd7b3472eae1",
+    "model/BuildingSimulation.py": "839e514966be6fecab3b79f9552bc3940a5af2690e2e75facdda5afde632c050",
+    "model/Radiation.py": "efae87f73949775b849bf8952d74a60881d80ee73b5feea916d4289694e1a1c5",
+    "model/RoomSimulation.py": "d6c9235d2b1b0ff715158504e9eec36b38f8d8ec5585477dd60adbee4b079e5e",
+    "model/VentilationSimulation.py": "536bf36b48371c0efecaad354c45287a4768740ab15affa80d0e0fd0dbdeedb3",
+    "model/WallSimulation.py": "900dc6d05ab47af32b034e26097cf499348bbcd35bc1d46fd433762c161ff881",
+    "model/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "model/utils.py": "85089444a21c70b5639c9dabac6731cb1427f231eaab53c7035664a4cf28724b"
+  }
+}

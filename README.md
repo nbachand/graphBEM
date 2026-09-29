@@ -149,8 +149,12 @@ These cover steady heat flow, transient storage, surface balances, changing wind
 
 `scripts/compare_wall_solver.py` reproduces the short Burbank diagnostic using an EnergyPlus case directory containing `surface_data.csv` and `results/eplusout.sql`. Pass `--baseline-wall` with an older `WallSimulation.py` to compare solvers. Results are saved in `analysis/energyplus_wall_fix`. This comparison uses the original 5,000 weather samples at 30-second spacing and is not a validation with matched warm-up or boundary conditions.
 
+`scripts/verify_physics_fixes.py --ep-case /path/to/Burbank/case` repeats the EnergyPlus comparison at 30, 15 and 7.5 seconds. It checks total wall and room-air storage against external heat input, with initial and ground temperatures held fixed across grids. Results and stage-by-stage comparisons are in `analysis/physics_fixes`. `scripts/audit_physics.py` reruns the original counterexamples against the current model.
+
 ## Ventilation
-There are a few specific ventilation models implemented that I used to compare with the homework, but I am currently not running ventilation in the model.
+The production example keeps ventilation disabled. The optional HWP4 path accepts scalar or vector times and temperatures, and returns volumetric flow with heat transfer positive into the room. Its existing schedule opens windows before 07:00 and after 19:00.
+
+The top-pivoted window width follows Eq. 4 of [Hult, Iaccarino and Fischer (2012)](https://publications.ibpsa.org/proceedings/simbuild/2012/papers/simbuild2012_05b_3_Hult.pdf). The complete side-plus-bottom opening width is squared. Effective-area integration splits at the geometry breakpoint to preserve the closed-window limit.
 
 ## Radiation
 
@@ -194,32 +198,28 @@ Currently, the only radiative boundary condition is a node representing the comb
 
 In the larger building graph, the sun/sky is a boundary condition represented by a node. In addition to radiating surfaces, the associated radiation graph for the sun/sky must includes a node representing the radiating boundary condition. Therefore, unlike with rooms, the node associated with the radiation graph is a node in the radiation graph.
 
-##### Default Sun/Sky Radiation Scheme
-The sun/sky is represented as a surface with an effective radiosity $J_{sky}$. The sky is only assumed to exchange radiation with roofs, and the view factor $F_{(roof)(sky)} = 1$. This view factor assumes all radiation leaving the roof interacts with the sky, and all radiation reaching the roof comes from the sky.
+##### Exterior radiation inputs
 
-The default graph for the sun/sky therefore connects all roofs to a new node representing the sun/sky.
+Exterior radiation keeps incident solar and longwave irradiance separate. Pass each exterior node's `radG` as `{"shortwave": S, "longwave": L}`. Each band can be a scalar or a time series in W/m². `L` is the sum of sky and ground irradiance after view-factor weighting. Legacy scalar/array `radG` inputs denote shortwave only.
 
-### Solar/Sky Radiation Inputs
+The net inward surface flux is:
 
-The current implementation avoids calculating an *effective sky temperature* $T_{sky}$ or emissive power $E_{sky}$. Instead,  $J_{sky}$ is directly inputed.  
-#### Input Data
-The input data (representing $J_{sky}$) is the sum of two quantities reported in energy plus weather datasets:
-1) Horizontal Infrared Radiation Intensity. This represents radiation exchange with the atmosphere.
-	1) “2.9.1.13 Field: Horizontal Infrared Radiation Intensity” ([“Auxiliary Programs”, p. 64](zotero://select/library/items/AK7V8DQP)) ([pdf](zotero://open-pdf/library/items/ZHREJX5S?page=64&annotation=LVWU9PH8))
-	2) “IRH is defined as the rate of infrared radiation emitted from the sky falling on a horizontal upward-facing surface, in W/m2.” ([“EnergyPlus™ Version 9.6.0 Documentation”, p. 195](zotero://select/library/items/8W5MVM89)) ([pdf](zotero://open-pdf/library/items/PM47E5GS?page=195&annotation=K6PVMUMU))
-2) Global Horizontal Radiation. This represents solar radiation on a horizontal surface. I believe this is currently not used in energy plus because it probably uses the angle of all surfaces and calculates the incident solar radiation from the *Direct Normal Radiation*. Instead, I assume that the roof is approximately horizontal (despite angles) and avoid this complexity.
-	1) “2.9.1.14 Field: Global Horizontal Radiation” ([“Auxiliary Programs”, p. 65](zotero://select/library/items/AK7V8DQP)) ([pdf](zotero://open-pdf/library/items/ZHREJX5S?page=65&annotation=PWMABJKX))
-		1) “Global Horizontal Radiation in Wh/m2. (Total amount of direct and diffuse solar radiation in Wh/m2 received on a horizontal surface during the number of minutes preceding the time indicated.) It is not currently used in EnergyPlus calculations. It should have a minimum value of 0; missing value for this field is 9999.”
-	2) Without this, nighttime radiation loss is unrealistically high.
+$$
+q_{rad}=\alpha_{solar} S+\epsilon_{thermal}(L-\sigma T_s^4)
+$$
 
-Here are these quantities plotted alongside other energy plus radiation quantities:
-![[Pasted image 20240318113212.png]]
+`wall.absorptivity` is the exterior solar absorptivity. Exterior thermal emissivity remains 0.9. Weather-file sky infrared already represents the sky's emitted radiation; do not apply a second sky-emissivity multiplier. The model retains the interior grey-surface assumption, using `wall.absorptivity` for interior emissivity.
+
+Interior radiation uses shared exchange conductances selected by surface roles, independent of dictionary order. Heat flux is calculated from graph edges, which also handles emissivity 1 without dividing by zero surface resistance. A self-loop partition retains the symmetric-face approximation: both faces receive the same per-area flux, and both contribute to the enclosure's area and energy budget.
+
 ## General Building Simulation Procedure
 
 At each timestep, the order of solving models is:
 1) Radiation
 2) Walls
 3) Rooms
+
+Radiation is applied directly using the previous surface temperatures, followed by the implicit wall solve and explicit room-air update. There is no timestep-dependent temporal filter. Stability and timestep refinement are checked at 30, 15 and 7.5 seconds for the Burbank diagnostic; larger timesteps are not guaranteed stable.
 
 # My Building (Example)
 ![Picture1](https://github.com/user-attachments/assets/5522a357-135d-4f6d-b77e-d0e44689033d)
