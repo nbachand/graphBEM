@@ -61,7 +61,7 @@ class WallSides:
     def update(self, val, reset = True):
         if self.updateFront is True:
             self.front = val
-        elif self.updateBack is True:
+        if self.updateBack is True:
             self.back = val
         self.updateFront = False
         self.updateBack = False

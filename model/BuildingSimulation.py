@@ -117,20 +117,19 @@ class BuildingSimulation():
                 for wall, EWall in E.items():
                     if wall == "sky":
                         continue
-                    self.bG.G.edges[n, wall]["nodes"].checkSides(n) # only for error checking
-                    if n == self.bG.G.edges[n, wall]["nodes"].front:
-                        radECalc = self.bG.G.edges[(n, wall)]["radECalc"].front
-                        radEApplied = self.bG.G.edges[(n, wall)]["radEApplied"].front
-                        self.bG.G.edges[(n, wall)]["wall"].Erad.setUpdateFront()
-                    if n == self.bG.G.edges[n, wall]["nodes"].back:
-                        radECalc = self.bG.G.edges[(n, wall)]["radECalc"].back
-                        radEApplied = self.bG.G.edges[(n, wall)]["radEApplied"].back
-                        self.bG.G.edges[(n, wall)]["wall"].Erad.setUpdateBack()
-                    radECalc[c] = EWall # leveraging pass by assignment here
-                    Ewall = (1 - self.radDamping) * EWall + self.radDamping * radEApplied[c - 1]
-                    radEApplied[c] = Ewall
-                    self.bG.G.edges[(n, wall)]["wall"].Erad.update(Ewall)
-                    self.bG.G.edges[(n, wall)]["wall"].Erad.back = self.bG.G.edges[(n, wall)]["radEApplied"].back[c]
+                    edge = self.bG.G.edges[n, wall]
+                    edge["nodes"].checkSides(n)
+                    # A self-loop partition represents two faces in this room.
+                    # EWall is per unit face area, so apply it to each face.
+                    for side in ("front", "back"):
+                        if getattr(edge["nodes"], side) != n:
+                            continue
+                        calculated = getattr(edge["radECalc"], side)
+                        applied = getattr(edge["radEApplied"], side)
+                        calculated[c] = EWall
+                        applied[c] = ((1 - self.radDamping) * EWall
+                                      + self.radDamping * applied[c - 1])
+                        setattr(edge["wall"].Erad, side, applied[c])
 
             # Solve Walls
             for i, j, d in self.bG.G.edges(data=True):
