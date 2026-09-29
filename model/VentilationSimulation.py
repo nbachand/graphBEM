@@ -11,7 +11,7 @@ class VentilationSimulation:
         # Constants
         self.rho = 1.225 #air density
         self.Cp = 1005  #specific heat capacity for air
-        self.Vnv = None
+        self.Vnv = 0.0
 
         self.initialize()
 
@@ -24,11 +24,25 @@ class VentilationSimulation:
             self.Cds[i] = self.get_Cd(np.radians(alpha))
         
     def get_Wpivot(self, z, alpha):
+        """Effective width for a top-hung window, angle in radians.
+
+        Hult, Iaccarino & Fischer (SimBuild 2012), Eq. 4:
+        https://publications.ibpsa.org/proceedings/simbuild/2012/papers/simbuild2012_05b_3_Hult.pdf
+        The entire side-plus-bottom opening width is squared.
+        """
+        if not np.isfinite(alpha) or not 0 <= alpha <= np.pi/2:
+            raise ValueError("Window angle must be between 0 and 90 degrees")
+        if self.H <= 0 or self.W <= 0:
+            raise ValueError("Window dimensions must be positive")
+        z = np.asarray(z, dtype=float)
+        if alpha == 0:
+            return np.zeros_like(z)
+        if alpha == np.pi/2:
+            return np.full_like(z, self.W)
         h = self.H * (1 - np.cos(alpha))
-        Wpivot = np.ones_like(z) * self.W
-        zpivot = z[z > h]
-        Wpivot[z > h] = (1 / self.W**2 + 1 / (2 * (self.H - zpivot) * np.tan(alpha) + np.sin(alpha) * self.W**2))**(-1/2)
-        return Wpivot
+        opening = 2 * (self.H-z) * np.tan(alpha) + np.sin(alpha)*self.W
+        effective = self.W * opening / np.hypot(self.W, opening)
+        return np.where(z > h, effective, self.W)
 
     def get_Aeff(self, alpha):
         z = np.linspace(0, self.H, 1000)
@@ -44,22 +58,26 @@ class VentilationSimulation:
         return Cdi * Ai * (2 * g * Li * np.abs((Tint - Tout) / Tout))**0.5
 
     def get_Vnv(self, Tint, Tout, t):
-        Vnv = np.zeros((self.Cds.size, t.size))
-        hours = t / 60 / 60
-        day_hours = np.remainder(hours, 24)
-        if isinstance(Tint, float):
-            Tint = np.ones_like(hours) * Tint
-        if isinstance(Tout, float):
-            Tout = np.ones_like(hours) * Tout
-        Tint = Tint[(day_hours < 7) | (day_hours > 12 + 7)]
-        Tout = Tout[(day_hours < 7) | (day_hours > 12 + 7)]
-        for i in range(len(self.As)):
-            Vnv_7to7 = self.get_Vnvi(self.Cds[i], self.As[i], self.Ls[i], Tint, Tout)
-            Vnv_i = Vnv[[i], :]
-            Vnv_i[(day_hours < 7) | (day_hours > 12 + 7)] = Vnv_7to7
-            Vnv[i, :] = Vnv_i
-        return Vnv
-        
+        """Return window-by-time volume flows, accepting scalar or 1D inputs."""
+        times = np.atleast_1d(np.asarray(t, dtype=float))
+        if times.ndim != 1:
+            raise ValueError("Ventilation times must be scalar or one-dimensional")
+        inside = np.broadcast_to(np.asarray(Tint, dtype=float), times.shape)
+        outside = np.broadcast_to(np.asarray(Tout, dtype=float), times.shape)
+        if np.any(inside <= 0) or np.any(outside <= 0):
+            raise ValueError("Ventilation temperatures must be in kelvin")
+        if self.Cds is None or not (len(self.Cds) == len(self.As) == len(self.Ls)):
+            raise ValueError("Each window needs an angle, area and stack height")
+        day_hours = np.remainder(times / 3600, 24)
+        open_window = (day_hours < 7) | (day_hours > 19)
+        flow = np.zeros((len(self.Cds), times.size))
+        for i, (cd, area, height) in enumerate(zip(self.Cds, self.As, self.Ls)):
+            if area < 0 or height < 0:
+                raise ValueError("Window area and stack height must be nonnegative")
+            flow[i, open_window] = self.get_Vnvi(cd, area, height,
+                                               inside[open_window], outside[open_window])
+        return flow
+
     def qToEvt(self, q, Tout, Tint):
         return self.rho * self.Cp * q * (Tout - Tint)
 
@@ -71,8 +89,10 @@ class VentilationSimulation:
         return 0
     
     def timeStepHWP4(self, t, Tint = 0, Tout = 0):
-        self.Vnv = np.sum(self.get_Vnv(Tint, Tout, t), axis=0) #summing across windows
-        Evt = self.qToEvt(self.Vnv, Tout, Tint)
+        self.Vnv = np.sum(self.get_Vnv(Tint, Tout, t), axis=0)
+        if np.ndim(t) == 0:
+            self.Vnv = float(self.Vnv[0])
+        Evt = self.qToEvt(self.Vnv, np.asarray(Tout), np.asarray(Tint))
         return Evt
     
     def timeStep(self, *args, **kwargs):
