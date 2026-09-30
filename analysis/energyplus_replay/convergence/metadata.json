@@ -1,0 +1,128 @@
+{
+  "ep_case": "/Users/nicholasbachand/codes/plan2EPlus/cases/graphbem_cali/CA_BURBANK-GLNDLE-PASAD-AP_722880S_CZ2022",
+  "timestep_seconds": 30.0,
+  "target_cells": 72,
+  "excluded_days": 7,
+  "score_start": "2017-08-08 00:00:00",
+  "end": "2017-09-01 00:00:00",
+  "physical_surfaces": 4,
+  "matched": [
+    "construction materials and inside/outside layer order",
+    "ground face temperature",
+    "each wall orientation separately",
+    "SQL zone-timestep timestamps",
+    "paired interzone faces; no duplicate partitions",
+    "surface-area weighting"
+  ],
+  "limitations": [
+    "Boundary replay, not a free-running building validation.",
+    "Robin replay prescribes EP air temperatures, h and net radiation; these are not validated outputs.",
+    "Dirichlet replay prescribes EP surface temperatures; only conduction is a prediction.",
+    "Sub-timestep boundary histories and EP warm-up states are unavailable.",
+    "robin holds inputs; robin_linear and dirichlet interpolate endpoint inputs linearly.",
+    "Endpoint predictions compared with reported zone-timestep values; no hourly records included."
+  ],
+  "sources": {
+    "/Users/nicholasbachand/codes/plan2EPlus/cases/graphbem_cali/CA_BURBANK-GLNDLE-PASAD-AP_722880S_CZ2022/results/eplusout.sql": "8c8a8efeaea673e5b905ccbd30250a5202a454423520b3d17f66843090fd4af9",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/scripts/compare_ep_replay.py": "6925bbe282599de3529d2b92e17a344b93f989c801822f820d5e1220abd326cd",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/model/WallSimulation.py": "900dc6d05ab47af32b034e26097cf499348bbcd35bc1d46fd433762c161ff881"
+  },
+  "surfaces": [
+    {
+      "surface_id": 1,
+      "surface": "BLOCK 00 `CORNER_VENTILATION` STOREY 0 WALL 0003",
+      "mode": "robin_linear",
+      "category": "wall",
+      "area": 12.2,
+      "spinup_days": 3,
+      "spinup_change_K": 2.165563728340203e-08,
+      "cells": 72,
+      "resistance": 2.048541666666667,
+      "capacity_J_m2K": 24806.103999999992
+    },
+    {
+      "surface_id": 1,
+      "surface": "BLOCK 00 `CORNER_VENTILATION` STOREY 0 WALL 0003",
+      "mode": "dirichlet",
+      "category": "wall",
+      "area": 12.2,
+      "spinup_days": 2,
+      "spinup_change_K": 0.0,
+      "cells": 72,
+      "resistance": 2.048541666666667,
+      "capacity_J_m2K": 24806.103999999992
+    },
+    {
+      "surface_id": 3,
+      "surface": "BLOCK 00 `CORNER_VENTILATION` STOREY 0 WALL 0001_1",
+      "mode": "robin_linear",
+      "category": "partition",
+      "area": 12.199999999254942,
+      "spinup_days": 4,
+      "spinup_change_K": 5.235384037405311e-06,
+      "cells": 72,
+      "resistance": 0.34875,
+      "capacity_J_m2K": 27729.6
+    },
+    {
+      "surface_id": 3,
+      "surface": "BLOCK 00 `CORNER_VENTILATION` STOREY 0 WALL 0001_1",
+      "mode": "dirichlet",
+      "category": "partition",
+      "area": 12.199999999254942,
+      "spinup_days": 2,
+      "spinup_change_K": 0.0,
+      "cells": 72,
+      "resistance": 0.34875,
+      "capacity_J_m2K": 27729.6
+    },
+    {
+      "surface_id": 5,
+      "surface": "BLOCK 00 `CORNER_VENTILATION` STOREY 0 FLOOR 0001",
+      "mode": "robin_linear",
+      "category": "floor",
+      "area": 16.0,
+      "spinup_days": 42,
+      "spinup_change_K": 9.253465748315648e-06,
+      "cells": 72,
+      "resistance": 3.478038461538462,
+      "capacity_J_m2K": 420765.63600000006
+    },
+    {
+      "surface_id": 5,
+      "surface": "BLOCK 00 `CORNER_VENTILATION` STOREY 0 FLOOR 0001",
+      "mode": "dirichlet",
+      "category": "floor",
+      "area": 16.0,
+      "spinup_days": 4,
+      "spinup_change_K": 3.997989779236377e-07,
+      "cells": 72,
+      "resistance": 3.478038461538462,
+      "capacity_J_m2K": 420765.63600000006
+    },
+    {
+      "surface_id": 6,
+      "surface": "BLOCK 00 `CORNER_VENTILATION` STOREY 0 ROOF 0001",
+      "mode": "robin_linear",
+      "category": "roof",
+      "area": 16.0,
+      "spinup_days": 3,
+      "spinup_change_K": 2.4411241383859306e-06,
+      "cells": 72,
+      "resistance": 3.473208333333334,
+      "capacity_J_m2K": 24979.235999999994
+    },
+    {
+      "surface_id": 6,
+      "surface": "BLOCK 00 `CORNER_VENTILATION` STOREY 0 ROOF 0001",
+      "mode": "dirichlet",
+      "category": "roof",
+      "area": 16.0,
+      "spinup_days": 2,
+      "spinup_change_K": 0.0,
+      "cells": 72,
+      "resistance": 3.473208333333334,
+      "capacity_J_m2K": 24979.235999999994
+    }
+  ]
+}

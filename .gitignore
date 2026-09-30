@@ -74,3 +74,6 @@ dfFull.csv
 
 # Scratch MC results written by runInJupyter test runs (resultsKey="temp")
 resultsMC/*_temp.csv
+
+# Full boundary-replay histories are reproducible from the external EP database.
+analysis/energyplus_replay/*/timeseries.csv.gz

@@ -151,6 +151,42 @@ These cover steady heat flow, transient storage, surface balances, changing wind
 
 `scripts/verify_physics_fixes.py --ep-case /path/to/Burbank/case` repeats the EnergyPlus comparison at 30, 15 and 7.5 seconds. It checks total wall and room-air storage against external heat input, with initial and ground temperatures held fixed across grids. Results and stage-by-stage comparisons are in `analysis/physics_fixes`. `scripts/audit_physics.py` reruns the original counterexamples against the current model.
 
+### Matched EnergyPlus boundary replay
+
+`scripts/compare_ep_replay.py` tests the wall solver against the existing Burbank EnergyPlus SQL results. It imports the exact materials and layer order, resolves paired interzone surfaces, and treats every exterior orientation separately. The floor uses EnergyPlus's recorded 18°C ground face, reversed layer order relative to the example building, and no added soil. Surface areas weight the errors. This is a controlled conduction test; room-air temperatures, convection coefficients and radiation are not independently validated.
+
+Two tests separate the boundary calculations from conduction:
+
+- `robin_linear` supplies EnergyPlus air temperatures, convection coefficients and net radiative fluxes. Surface temperatures and conduction are predictions.
+- `dirichlet` supplies EnergyPlus surface temperatures on both faces. Only conduction is a prediction.
+
+The SQL contains both hourly and 15-minute time records. Only zone-timestep records enter the replay. Their values are treated as endpoint samples and interpolated between endpoints. The optional `robin` mode instead holds each interval's inputs constant, exposing sensitivity to this assumption. Predictions are sampled at the corresponding endpoints. Both faces use conduction positive from the material toward the face, following the [EnergyPlus output convention](https://bigladdersoftware.com/epx/docs/22-2/input-output-reference/group-thermal-zone-description-geometry.html).
+
+The full August history is replayed after first-day periodic spin-up to a cell-temperature change below 0.00001 K. Metrics exclude August 1–7 because EnergyPlus's actual warm-up states are unavailable. The matched run uses a 60-second timestep and a target of 36 solid cells. It covers 21 physical surfaces, without double-counting interzone partitions.
+
+| Construction | Inside conduction RMSE | Outside conduction RMSE |
+| --- | ---: | ---: |
+| Exterior wall | 0.0146 W/m² | 0.0484 W/m² |
+| Roof | 0.0073 W/m² | 0.0790 W/m² |
+| Floor | 0.5008 W/m² | 0.0023 W/m² |
+| Partition | 0.0023 W/m² | 0.0019 W/m² |
+
+These are the prescribed-surface-temperature results. With prescribed air temperatures, coefficients and radiation, wall surface-temperature RMSE is 0.022 K inside and 0.097 K outside. Roof values are 0.020 K and 0.070 K. The results support the repaired wall solver, while leaving the floor's smaller transient discrepancy unresolved. They do not establish agreement of the free-running buildings or explain each earlier mismatch individually.
+
+A 30-second, 72-cell refinement on one surface of each type reduces wall and roof outside-face conduction errors to 0.006 and 0.013 W/m². Floor inside conduction changes by only 0.011 W/m² RMS between refinements. Its full-run error also remains near 0.50 W/m² when excluding two or three weeks, so it is not explained by the tested refinement or initialization exclusions. The stored hold-input runs show why temporal forcing assumptions must accompany the results.
+
+Run with the graphBEM Python environment:
+
+```sh
+python scripts/compare_ep_replay.py --ep-case /path/to/Burbank/case --output analysis/energyplus_replay/matched
+python scripts/compare_ep_replay.py --ep-case /path/to/Burbank/case --dt 30 --cells 72 --surface-ids 1 3 5 6 --output analysis/energyplus_replay/convergence
+python scripts/compare_ep_replay.py --ep-case /path/to/Burbank/case --dt 900 --cells 9 --modes robin dirichlet --output analysis/energyplus_replay/coarse
+python scripts/compare_ep_replay.py --ep-case /path/to/Burbank/case --dt 60 --cells 36 --modes robin dirichlet --output analysis/energyplus_replay/refined
+MPLBACKEND=Agg python scripts/summarize_ep_replay.py
+```
+
+Results: [plot](analysis/energyplus_replay/comparison.png), [matched metrics](analysis/energyplus_replay/matched/metrics.csv), [refinement changes](analysis/energyplus_replay/refinement_changes.csv), and [initialization sensitivity](analysis/energyplus_replay/initialization_sensitivity.csv). Metadata records source hashes and spin-up convergence. Full compressed histories are retained locally but excluded from Git.
+
 ## Ventilation
 The production example keeps ventilation disabled. The optional HWP4 path accepts scalar or vector times and temperatures, and returns volumetric flow with heat transfer positive into the room. Its existing schedule opens windows before 07:00 and after 19:00.
 
