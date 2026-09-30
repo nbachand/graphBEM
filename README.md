@@ -275,3 +275,40 @@ All rooms are $H_{R}=3 m$ tall. Most rooms are square and $L_{R}$=4 m across. Th
 ]
 ```
 ---
+
+### Free-running EnergyPlus building comparison
+
+`scripts/compare_ep_free_running.py` simulates all four rooms and 21 physical opaque surfaces through August. Room temperatures, surface temperatures and heat flows evolve freely. A streaming driver uses the production wall, room and radiation models while preserving each exterior orientation. The radiation operator is precomputed from the production network and tested against its normal solver.
+
+The benchmark imports EnergyPlus's surface areas, orientations, zone dimensions, volumes, interzone connections and construction layers. The floor plan agrees with the example's four-room layout, but the example uses 3.00 m walls instead of 3.05 m, removes window area where EnergyPlus has no windows, and adds a partition within the dual room. These differences are removed in the benchmark. The original example configuration remains a separate case.
+
+The floor boundary is fixed at 18°C, with the exact EnergyPlus floor construction and no extra soil layer. Solar absorptivity is 0.7 and thermal emissivity is 0.9. The exterior plywood is Smooth, giving a DOE-2 roughness multiplier of 1.11 from the [EnergyPlus material-roughness table](https://bigladdersoftware.com/epx/docs/22-2/engineering-reference/outside-surface-heat-balance.html#tarp-algorithm). This replaces the example's generic multiplier of 1.64. Interior radiation now accepts an emissivity independently of solar absorptivity and an explicit enclosure height. Legacy defaults remain available.
+
+Exterior forcing consists of EnergyPlus's reported local outdoor air temperature, local wind and incident shortwave radiation, plus horizontal infrared from the same EPW. No EnergyPlus indoor temperatures, surface temperatures, convection coefficients or net radiation enter the simulation. Using EnergyPlus's incident sunlight isolates the thermal model; it does not validate GraphBEM's solar transposition. The [EnergyPlus weather implementation](https://github.com/NREL/EnergyPlus/blob/v22.2.0/src/EnergyPlus/WeatherManager.cc) interpolates hourly infrared at timestep endpoints. The benchmark follows that timing and the first-day midnight convention. The EPW source year is mapped to the SQL run year using local standard time, without DST. An outdoor-temperature audit agrees to 7.2e-15 K.
+
+Warm-up repeats the first day until every room and wall-cell temperature changes by less than 0.001 K between days. Both runs converged in 36 days. This matches the repeated-day procedure, but not EnergyPlus's unavailable initial state or stopping criteria: its input allows 6–25 days with a 0.4 K temperature convergence tolerance. All-month results and results excluding 7 or 14 days are saved. Early-period disagreement is larger, so the comparison should not be described as having identical warm-up states.
+
+Refined room-temperature errors for August 8–31:
+
+| Room | RMSE, °C | Bias, °C |
+|---|---:|---:|
+| Corner (zone 1) | 0.691 | +0.675 |
+| Single sided (zone 2) | 0.717 | +0.706 |
+| Dual room (zone 3) | 0.594 | +0.581 |
+| Cross (zone 4) | 0.715 | +0.689 |
+
+Including the full month gives room RMSE of 0.779–0.892°C. Excluding the first 14 days gives 0.543–0.673°C. These periods have different weather as well as different exposure to initialization effects.
+
+The largest remaining flux discrepancies are exterior convection and radiation. Their errors can offset, so close room temperatures do not establish agreement in each heat-balance term. GraphBEM retains its constant interior convection coefficient, exterior convection correlation, sky/ground view factors, constant air properties and approximate enclosure radiation network, which omits wall-to-wall exchange. Split-wall view factors remain approximate even though physical areas and zone dimensions match. These algorithm differences are recorded, not tuned against EnergyPlus output.
+
+The base run uses 60 s and 18 target wall cells; the refined run uses 30 s and 36 cells. Refinement changes room temperatures by 0.0070–0.0090 K RMS and at most 0.026 K after the first week. Exterior roof conduction changes by 0.29 W/m² RMS, so it has more numerical sensitivity than the room temperatures. The refined whole-building energy residual stays below 4.3e-07 W. Tests cover uniform equilibrium, coupled energy conservation, radiation-operator equivalence, weather timing and independence from EnergyPlus thermal predictions.
+
+Temperatures and fluxes are compared at the 15-minute SQL endpoints. Surface errors are area weighted. Conduction is positive from the wall core toward each face; convection and radiation are positive into the face. For partitions, `outside` denotes the second room's face. Ground-side convection is a numerical constraint reaction and is excluded from flux metrics, as is the prescribed ground temperature.
+
+```bash
+python scripts/compare_ep_free_running.py --ep-case /path/to/Burbank/case --epw /path/to/Burbank.epw
+python scripts/compare_ep_free_running.py --ep-case /path/to/Burbank/case --epw /path/to/Burbank.epw --dt 30 --cells 36 --output analysis/energyplus_free_running/refined
+MPLBACKEND=Agg python scripts/summarize_ep_free_running.py
+```
+
+Results: [room temperatures](analysis/energyplus_free_running/refined/room_comparison.png), [interior surface heat flows](analysis/energyplus_free_running/refined/surface_comparison.png), [exterior heat flows](analysis/energyplus_free_running/exterior_comparison.png), [all metrics](analysis/energyplus_free_running/summary.csv), [refinement](analysis/energyplus_free_running/refinement.csv), and [geometry](analysis/energyplus_free_running/refined/geometry.csv). Full surface histories are retained locally and excluded from Git. Metadata records source hashes, assumptions and warm-up convergence.

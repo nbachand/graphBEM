@@ -1,0 +1,33 @@
+{
+  "timestep_seconds": 30.0,
+  "target_cells": 36,
+  "days": 31,
+  "warmup_days": 36,
+  "warmup_tolerance_K": 0.001,
+  "max_energy_residual_W": 4.267030817572959e-07,
+  "ground_temperature_C": 18,
+  "interior_emissivity": 0.9,
+  "exterior_emissivity": 0.9,
+  "inside_h_W_m2K": 2,
+  "outside_natural_h_W_m2K": 2,
+  "roughness": "Imported exterior material roughness; this case is Smooth, multiplier 1.11",
+  "forcing": "EP local outdoor temperature, local wind and incident solar; EPW horizontal infrared. Linear interpolation between zone-timestep endpoints. Local standard time.",
+  "time_comparison": "Endpoint samples; no indoor temperatures or net heat flows used as forcing.",
+  "warmup": "Repeat first day to periodic state, at least 6 days. EP warm-up state unavailable; its 6..25 day settings and convergence criteria differ.",
+  "limitations": [
+    "GraphBEM convection correlations retained, not EP coefficients",
+    "GraphBEM enclosure radiation omits wall-to-wall exchange and approximates split-wall view factors",
+    "GraphBEM sky/ground hemispheric view factors retained",
+    "Incident sunlight supplied by EP, so solar transposition is not independently tested",
+    "Constant GraphBEM air density and heat capacity retained",
+    "First midnight starts from repeated first-day final weather sample"
+  ],
+  "hashes": {
+    "/Users/nicholasbachand/codes/plan2EPlus/cases/graphbem_cali/CA_BURBANK-GLNDLE-PASAD-AP_722880S_CZ2022/results/eplusout.sql": "8c8a8efeaea673e5b905ccbd30250a5202a454423520b3d17f66843090fd4af9",
+    "energyPlus/weather/CAClimateZones/CA_BURBANK-GLNDLE-PASAD-AP_722880S_CZ2022/CA_BURBANK-GLNDLE-PASAD-AP_722880S_CZ2022.epw": "63d35508a7fcf623b29a85d0253da2e8177788b41478275011c56c8f2c157a6e",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/scripts/compare_ep_free_running.py": "5286f15d028c8f93d60ce59973a1996a598803833d22cc52c3af39aa1f229d7d",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/model/WallSimulation.py": "900dc6d05ab47af32b034e26097cf499348bbcd35bc1d46fd433762c161ff881",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/model/Radiation.py": "0d9b8cf27239b1fdd148082aebf91f585d2f9910c7320b65fb5b048f9994c822",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/model/RoomSimulation.py": "d6c9235d2b1b0ff715158504e9eec36b38f8d8ec5585477dd60adbee4b079e5e"
+  }
+}

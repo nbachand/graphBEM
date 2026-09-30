@@ -77,3 +77,7 @@ resultsMC/*_temp.csv
 
 # Full boundary-replay histories are reproducible from the external EP database.
 analysis/energyplus_replay/*/timeseries.csv.gz
+
+# Reproducible per-surface histories for the free-running benchmark.
+analysis/energyplus_free_running/*/surface_timeseries.csv.gz
+analysis/energyplus_free_running/legacy_roughness_*/

@@ -1,0 +1,19 @@
+{
+  "site_air_epw_interpolation_max_error_K": 7.105427357601002e-15,
+  "nominal_gain_and_airflow_table_counts": {
+    "NominalPeople": 0,
+    "NominalLighting": 0,
+    "NominalElectricEquipment": 0,
+    "NominalGasEquipment": 0,
+    "NominalSteamEquipment": 0,
+    "NominalHotWaterEquipment": 0,
+    "NominalOtherEquipment": 0,
+    "NominalBaseboardHeaters": 0,
+    "NominalInfiltration": 0,
+    "NominalVentilation": 0
+  },
+  "ground_surface_range_C": [
+    18.0,
+    18.0
+  ]
+}
