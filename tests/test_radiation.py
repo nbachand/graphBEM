@@ -17,6 +17,21 @@ def enclosure():
 
 
 class RadiationTests(unittest.TestCase):
+    def test_interior_emissivity_is_independent_of_solar_absorptivity(self):
+        mapping = enclosure()
+        r = Radiation(solveType='room', emissivity=.9, storyHeight=3.05)
+        r.initialize(mapping)
+        self.assertAlmostEqual(r.G.nodes['RF']['boundaryResistance'], .1/(.9*16))
+        self.assertEqual(mapping['RF']['wall'].absorptivity, .7)
+        self.assertEqual(r.storyHeight, 3.05)
+
+    def test_shared_edge_tolerates_roundoff_in_imported_dimensions(self):
+        mapping = enclosure()
+        mapping['wall']['wall'].X = 12.2/3.05
+        r = Radiation(solveType='room')
+        r.initialize(mapping)
+        self.assertTrue(np.isfinite(r.timeStep()).all())
+
     def test_exterior_equilibrium_and_cold_sky(self):
         for alpha in [.6, .75, 1]:
             r = Radiation(solveType='sky')

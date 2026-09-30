@@ -39,12 +39,12 @@ class Radiation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
         expected_kwards = set(["solveType"])
-        if set(kwargs.keys()) != expected_kwards:
+        if not expected_kwards <= set(kwargs) or set(kwargs) - expected_kwards - {"storyHeight", "emissivity"}:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         
         # Constants
         self.sigma = 5.67e-8
-        self.storyHeight = 3
+        self.storyHeight = kwargs.get("storyHeight", 3)
 
     def initialize(self, roomNode:nx.classes.coreviews.AtlasView, solarGain=0, drawGraphs=False, longwaveGain=0):
         self.solarGain = solarGain  # incident shortwave, W/m2
@@ -75,7 +75,8 @@ class Radiation:
                 # d["epsilon_over_alpha"] = 1 # dont think this is used
             else:
                 wall = self.roomNode[n]["wall"]
-                alpha = wall.absorptivity # interior grey-surface emissivity; exterior solar absorptivity
+                alpha = (getattr(self, "emissivity", wall.absorptivity)
+                         if self.solveType == "room" else wall.absorptivity)
                 if not np.isfinite(alpha) or not 0 < alpha <= 1:
                     raise ValueError("Surface absorptivity must be in (0, 1]")
                 d["X"] = wall.X # dimension used in view factor  
@@ -109,9 +110,10 @@ class Radiation:
                 wall = j if horizontal == i else i
                 w, h = self.G.nodes[wall], self.G.nodes[horizontal]
                 dimensions = [h["X"], h["Y"]]
-                if w["X"] not in dimensions:
+                matches = [k for k, length in enumerate(dimensions) if np.isclose(w["X"], length)]
+                if not matches:
                     raise ValueError(f"No shared edge between {wall} and {horizontal}")
-                dimensions.remove(w["X"])
+                dimensions.pop(matches[0])
                 F = getVFPerpRectanglesCommonEdge(w["X"], w["Y"], dimensions[0])
                 exchange_area = w["A"] * F
             d["radianceResistance"] = 1 / exchange_area
