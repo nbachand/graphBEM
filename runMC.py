@@ -4,7 +4,9 @@ from myBuilding import runMyBEM
 from IPython.display import display, HTML
 
 
-def runMC(inputs: list, parallel = True):
+def runMC(inputs: list, parallel = True, interior_convection="legacy",
+          exterior_convection="legacy", sky_model="precombined"):
+    """Keep sampled fixed coefficients active unless a correlation is selected."""
     if parallel:
         try:
             client.shutdown()
@@ -17,7 +19,8 @@ def runMC(inputs: list, parallel = True):
         for input in inputs:
             inputs_futures.append(client.scatter(input))
 
-        realizations = client.map(runMyBEM, *inputs_futures, makePlots=False, verbose = False)
+        realizations = client.map(runMyBEM, *inputs_futures, makePlots=False, verbose = False, interior_convection=interior_convection,
+                                  exterior_convection=exterior_convection, sky_model=sky_model)
 
         realizationOutputs = client.gather(realizations)
         print(realizationOutputs)
@@ -27,7 +30,8 @@ def runMC(inputs: list, parallel = True):
         realizationOutputs = []
         for i in range(len(inputs[0])):
             serial_inputs = [input[i] for input in inputs]
-            realizationOutputs.append(runMyBEM(*serial_inputs, makePlots=True, verbose = True))
+            realizationOutputs.append(runMyBEM(*serial_inputs, makePlots=True, verbose = True, interior_convection=interior_convection,
+                                  exterior_convection=exterior_convection, sky_model=sky_model))
     
     return realizationOutputs
 

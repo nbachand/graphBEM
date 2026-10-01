@@ -46,6 +46,19 @@ def weather_sample():
 
 
 def run_graph(sample, wall_class, return_sim=False):
+    if not hasattr(wall_class, 'convection_metadata'):
+        # Saved historical solvers predate explicit model configuration.
+        class LegacyAdapter(wall_class):
+            def __init__(self, **kwargs):
+                extra = {key: kwargs.pop(key) for key in
+                         ('convection', 'tilt', 'azimuth', 'wind_exposure') if key in kwargs}
+                super().__init__(**kwargs)
+                self.__dict__.update(extra)
+            def initialize(self, *args, windDirection=None, **kwargs):
+                return super().initialize(*args, **kwargs)
+            def convection_metadata(self):
+                return {'model': 'historical solver'}
+        wall_class = LegacyAdapter
     captured = []
     original_run = BuildingSimulation.run
     def capture(sim):
@@ -54,7 +67,7 @@ def run_graph(sample, wall_class, return_sim=False):
     materials = getConstructions('My', constructionFile=str(ROOT/'energyPlus/My_Constructions.csv'),
                                  materialFile=str(ROOT/'energyPlus/ASHRAE_2005_HOF_Materials.csv'))
     with patch.object(ws, 'WallSimulation', wall_class), patch.object(BuildingSimulation, 'run', capture):
-        runMyBEM(sample, materials, -4.25, 2, 2, 1.64, .75, makePlots=False)
+        runMyBEM(sample, materials, -4.25, 2, 2, 1.64, .75, makePlots=False, interior_convection="legacy", exterior_convection="legacy")
     sim = captured[0]
     frames, balances = [], []
     for a, b, d in sim.bG.G.edges(data=True):

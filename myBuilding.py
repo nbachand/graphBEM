@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from model import BuildingSimulation as bs, BuildingGraph as bg
 from model.WallSimulation import processMaterials, convectionDOE2
+from model.Radiation import incident_longwave
 from model.utils import *
 import matplotlib.colors as mcolors
 import warnings
@@ -40,7 +41,17 @@ def runMyBEM(
         ventThreshold = 273.15 + 24, # 24 C or 75 F
         coolingReference = 273.15 + 21, # 21 C or 70 F
         verbose = False,
-        makePlots = False):
+        makePlots = False,
+        interior_convection = "tarp",
+        exterior_convection = "doe2",
+        sky_model = "precombined"):
+    """Run the example with TARP inside and DOE-2 outside by default.
+
+    Exterior walls aggregate multiple orientations: DOE-2 uses equal averaged
+    windward/leeward exposure. hInterior/hExterior_nat apply only to fixed or
+    legacy choices. Precombined sky preserves supplied irradiance/obstructions;
+    isotropic and energyplus choices require raw ghi_infrared weather data.
+    """
 
     materials = materials.copy()
     weather_data = weather_data.copy()
@@ -78,8 +89,18 @@ def runMyBEM(
             "longwave": (weather_data[prefix + " Sky Longwave Radiation"]
                          + weather_data[prefix + " Surfaces Longwave Radiation"]).to_numpy(),
         }
-    hrad = radiation["RF"]["shortwave"] + radiation["RF"]["longwave"]
-    vrad = radiation["OD"]["shortwave"] + radiation["OD"]["longwave"]
+    if sky_model != "precombined":
+        if sky_model not in {"isotropic", "energyplus"}:
+            raise ValueError("Unknown sky model")
+        for node in radiation:
+            radiation[node] = {"shortwave": radiation[node]["shortwave"],
+                               "sky_horizontal": weather_data["ghi_infrared"].to_numpy()}
+    plotted_radiation = {}
+    for node, tilt in [("RF", 0), ("OD", 90)]:
+        incoming = (radiation[node]["longwave"] if sky_model == "precombined" else
+                    incident_longwave(radiation[node]["sky_horizontal"], Touts, tilt, sky_model))
+        plotted_radiation[node] = radiation[node]["shortwave"] + incoming
+    hrad, vrad = plotted_radiation["RF"], plotted_radiation["OD"]
 
     # Plotting the weather data
     if makePlots:
@@ -145,13 +166,17 @@ def runMyBEM(
             'RF': wind_speed_RF,
             'OD': wind_speed_OD
         },
-        "radG": radiation
+        "radG": radiation,
+        "interior_convection": interior_convection,
+        "exterior_convection": exterior_convection
     }
     wall_kwargs = {"X": 4, "Y": 3, "material_df": partitionMaterial, "h": WallSides(hInterior, hInterior), "roughness": WallSides(0,0), "absorptivity" : alphaWalls, "n": n, "implicit": implicit}
     wall_kwargs_OD = {"X": 4, "Y": 3, "material_df": wallMaterial,   "h": WallSides(hInterior, hExterior_nat), "roughness": WallSides(0,wallRoughness), "absorptivity" : alphaWalls,  "n": n, "implicit": implicit}
     wall_kwargs_RF = {"X": 4, "Y": 4, "material_df": roofMaterial,   "h": WallSides(hInterior, hExterior_nat), "roughness": WallSides(0,wallRoughness), "absorptivity" : alphaRoof, "n": n, "implicit": implicit}
     wall_kwargs_FL = {"X": 4, "Y": 4, "material_df": floorMaterial,  "h": WallSides(hInterior, 1e6), "roughness": WallSides(0,0), "absorptivity" : alphaWalls, "n": nFloor, "implicit": implicit}
 
+    # One OD edge represents several facades. Do not invent a single azimuth.
+    wall_kwargs_OD["wind_exposure"] = WallSides("directional", "average")
     room_kwargs = {
         "T0": np.mean(Touts), #Touts[0],
         "V" : 4**2 * 3, #volume of air
@@ -168,9 +193,11 @@ def runMyBEM(
 
     rad_kwargs_RF = {
         "solveType": "sky",
+        "sky_model": sky_model,
     }
     rad_kwargs_OD = {
         "solveType": "sky",
+        "sky_model": sky_model,
     }
     rad_kwargs_FL = {
         "solveType": "room"
@@ -563,4 +590,11 @@ def runMyBEM(
     if verbose:
         print(f'Average "exterior wall - floor" temperature difference at ventilation time: {outputs["extWallMinusFloor"]}')
     
+    # Repeat the model labels alongside each event to retain the existing
+    # tabular Monte Carlo output shape.
+    for key, value in {"interior_convection": interior_convection,
+                       "exterior_convection": exterior_convection,
+                       "sky_model": sky_model,
+                       "exterior_exposure": "average"}.items():
+        outputs[key] = [value]*len(outputs["dVent"])
     return outputs

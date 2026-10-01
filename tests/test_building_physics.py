@@ -60,3 +60,37 @@ class BuildingPhysicsTests(unittest.TestCase):
         coarse = np.sqrt(np.mean((temperatures[0]-temperatures[1])**2))
         fine = np.sqrt(np.mean((temperatures[1]-temperatures[2])**2))
         self.assertLess(fine, .7*coarse)
+
+    def test_model_configuration_and_ground_are_recorded(self):
+        sim = example(sky_model='energyplus')
+        sim.run()
+        floor = sim.bG.G.edges['CR', 'FL']['wall']
+        roof = sim.bG.G.edges['CR', 'RF']['wall']
+        self.assertEqual((floor.convection.front, floor.convection.back), ('tarp', 'fixed'))
+        self.assertEqual((floor.tilt.front, floor.tilt.back), (0, 180))
+        self.assertEqual((roof.tilt.front, roof.tilt.back), (180, 0))
+        self.assertEqual(sim.metadata['sky_models']['OD'], 'energyplus')
+        self.assertEqual(sim.metadata['convection']['CR:OD']['back']['wind_exposure'], 'average')
+        legacy = example(interior_convection='legacy', exterior_convection='legacy')
+        self.assertEqual(legacy.bG.G.edges['CR', 'RF']['wall'].convection.front, 'legacy')
+
+    def test_building_passes_direction_to_individual_facade(self):
+        from model.BuildingSimulation import BuildingSimulation
+        from model.Convection import exterior_convection
+        original = example()
+        graph = original.bG
+        edge = graph.G.edges['CR', 'OD']
+        edge['wall_kwargs']['azimuth'] = WallSides(180., 0.)
+        edge['wall_kwargs']['wind_exposure'] = WallSides('directional', 'directional')
+        sim = BuildingSimulation(delt=30, simLength=120,
+            Tbound={k:v.copy() for k,v in original.Tbound.items()},
+            windSpeed={k:np.full(5, 4.) for k in original.windSpeed},
+            windDirection={'OD': np.array([359., 1., 180., 180., 180.])},
+            radG=original.radG, interior_convection='tarp', exterior_convection='doe2')
+        sim.initialize(graph)
+        w = edge['wall']
+        sim.run()
+        for k in range(1, 5):
+            expected = exterior_convection(edge['T_profs'][-1,k-1], sim.Tbound['OD'][k-1],
+                                           4., w.roughness.back, 90, 0, sim.windDirection['OD'][k])
+            self.assertAlmostEqual(edge['hCalced'].back[k], expected)

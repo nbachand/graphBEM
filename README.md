@@ -353,3 +353,75 @@ MPLBACKEND=Agg python scripts/summarize_ep_diagnosis.py
 ```
 
 Results: [causal comparison plot](analysis/energyplus_diagnosis/causal_comparison.png), [sensitivity summary](analysis/energyplus_diagnosis/causal_summary.csv), [same-state exterior convection](analysis/energyplus_diagnosis/exterior_same_state.csv), [radiation decomposition](analysis/energyplus_diagnosis/radiation_decomposition.csv), and [enclosure radiation](analysis/energyplus_diagnosis/enclosure_same_state.csv). RMS components are not additive. Metadata records the audit source hashes and each variant's settings.
+
+## Selectable convection and sky models
+
+`runMyBEM` now defaults to TARP interior convection and DOE-2 exterior convection.
+These are established empirical correlations with a verified implementation;
+agreement with EnergyPlus does not establish improved accuracy against measurements.
+
+- `interior_convection="tarp"`: coefficient depends on the previous surface
+  temperature, current adjoining air temperature and face orientation. Minimum
+  coefficient is 0.1 W/m²K. The normal points from the face into the air: floors
+  face up and ceilings face down. Ground contact remains a prescribed-temperature
+  approximation, separate from air convection.
+- `exterior_convection="doe2"`: TARP natural convection plus roughness-adjusted
+  wind convection, using **local** wind speed. Directional façades need azimuth
+  and meteorological wind direction, both clockwise from north. The windward
+  threshold and coefficients follow EnergyPlus 22.2 source. Roofs use its
+  near-horizontal rule.
+- `"fixed"` keeps the **total** coefficient fixed, without wind dependence.
+  `"doe2_fixed_natural"` outside keeps only the natural component fixed and
+  retains DOE-2 wind dependence. Use `interior_convection="fixed"` and
+  `exterior_convection="doe2_fixed_natural"` with `hInterior=2` and
+  `hExterior_nat=2` for that simplified case.
+- `"legacy"` retains the former averaged wind formula with fixed natural h.
+  Select it for both sides to reproduce earlier runs. The Monte Carlo driver
+  and historical wall diagnostic explicitly retain this choice, since their
+  inputs sample fixed coefficients. `runMC` accepts model overrides.
+
+The example graph combines differently oriented façades into each OD edge.
+For those edges, DOE-2 explicitly averages windward and leeward **coefficients**
+with equal weights. This remains a geometry approximation. The matched benchmark
+retains individual azimuths and does not use this approximation.
+
+`sky_model="precombined"` remains the example's default: it uses the supplied
+sky-plus-surroundings irradiance, including any upstream obstruction treatment.
+`"isotropic"` and `"energyplus"` instead use raw `ghi_infrared` and outdoor air
+for an unobstructed hemisphere. The latter splits sky exposure between sky and
+ambient air. Choosing convection does not change the sky model. The matched
+benchmark explicitly uses `"energyplus"`.
+
+For direct `WallSimulation` callers, `convection`, `tilt`, `azimuth` and
+`wind_exposure` are `WallSides` objects. Tilts are 0° up, 90° vertical and 180°
+down. Supply wind direction to `initialize(..., windDirection=...)` and update
+`wall.windDirection` with weather. The wall and generic building constructors
+retain legacy defaults for compatibility. `BuildingSimulation` accepts separate
+`interior_convection`, `exterior_convection` and boundary-indexed `windDirection`
+series; orientation belongs in each edge's `wall_kwargs`. Explicit wall settings
+can override building settings. Missing directional geometry raises an error.
+
+Model choices are available in `BuildingSimulation.metadata`, in `runMyBEM`
+event output labels and in benchmark `metadata.json`. Fixed h inputs are not
+used when the selected model calculates h from temperature.
+
+Implementation references:
+[EnergyPlus 22.2 convection source](https://github.com/NREL/EnergyPlus/blob/v22.2.0/src/EnergyPlus/ConvectionCoefficients.cc)
+and [outside heat balance reference](https://bigladdersoftware.com/epx/docs/22-2/engineering-reference/outside-surface-heat-balance.html).
+The source uses 7.238 in the unstable TARP denominator; the reference prints
+7.283. This implementation follows the source. Exterior direction selection
+also follows the source's 90.001° threshold.
+
+Reproduce the three-climate comparison (31 days per run, independently converged
+warm-up, 60 s and 18 target wall cells; Burbank refinement uses 30 s and 36 cells):
+
+```sh
+python scripts/run_convection_benchmarks.py --case-root /path/to/graphbem_cali --jobs 3
+python scripts/summarize_convection_benchmarks.py
+```
+
+The benchmark CLI defaults to TARP/DOE-2 with the EnergyPlus sky split. Its
+low-level `FreeBuilding` constructor retains legacy defaults for the existing
+attribution scripts. Fixed sensitivity cases change interior h and the exterior
+natural component together to 1, 2 or 3 W/m²K. They retain DOE-2 wind convection
+and the same sky split. These are sensitivity cases, not confidence bounds.

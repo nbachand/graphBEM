@@ -6,10 +6,10 @@ from runMyBuildingMC import getConstructions
 from model.BuildingSimulation import BuildingSimulation
 
 
-def example(dt=30, steps=4):
+def example(dt=30, steps=4, **model_options):
     weather = pd.DataFrame(index=pd.date_range('2008-08-01', periods=steps+1,
                                              freq=f'{dt}s', tz='Etc/GMT+8'))
-    for col, value in [('temp_air', 20.), ('wind_speed', 1.), ('Latitude', 34.2),
+    for col, value in [('ghi_infrared', 350.), ('wind_direction', 210.), ('temp_air', 20.), ('wind_speed', 1.), ('Latitude', 34.2),
                        ('Horizontal Shortwave Radiation', 0.), ('Vertical Shortwave Radiation', 0.),
                        ('Horizontal Sky Longwave Radiation', 350.), ('Vertical Sky Longwave Radiation', 175.),
                        ('Horizontal Surfaces Longwave Radiation', 0.), ('Vertical Surfaces Longwave Radiation', 230.)]:
@@ -23,7 +23,7 @@ def example(dt=30, steps=4):
     materials = getConstructions('My', constructionFile='energyPlus/My_Constructions.csv')
     try:
         with patch.object(BuildingSimulation, 'run', capture):
-            runMyBEM(weather, materials, -4.25, 2, 2, 1.64, .75)
+            runMyBEM(weather, materials, -4.25, 2, 2, 1.64, .75, **model_options)
     except Initialized:
         pass
     return captured[0]
