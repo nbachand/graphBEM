@@ -3,7 +3,7 @@ from model.utils import WallSides
 
 
 def convectionDOE2(h_nat, V, R_f):
-    """Calculate the convection coefficient using the DOE-2 method."""
+    """Legacy averaged wind correlation, retained for reproducibility."""
     alpha = np.mean([2.38, 2.86])
     beta = np.mean([0.617, 0.89])
     return (1 - R_f) * h_nat + R_f * (h_nat**2 + (alpha * V**beta)**2)**0.5
@@ -57,9 +57,18 @@ class WallSimulation:
     def __init__(self, **kwargs):
         expected = {'X', 'Y', 'material_df', 'h', 'roughness', 'absorptivity',
                     'n', 'delt', 'implicit'}
-        if set(kwargs) != expected:
+        optional = {"convection", "tilt", "azimuth", "wind_exposure"}
+        if not expected <= set(kwargs) or set(kwargs) - expected - optional:
             raise ValueError(f"Invalid keyword arguments, expected {expected}")
         self.__dict__.update(kwargs)
+        self.convection = kwargs.get("convection", WallSides("legacy", "legacy"))
+        self.tilt = kwargs.get("tilt", WallSides(90., 90.))
+        self.azimuth = kwargs.get("azimuth", WallSides(None, None))
+        self.wind_exposure = kwargs.get("wind_exposure", WallSides("directional", "directional"))
+        self.windDirection = None
+        for side in ("front", "back"):
+            if getattr(self.convection, side) not in {"legacy", "fixed"}:
+                raise ValueError("Unknown convection model")
         self.Af = self.X * self.Y
         self.processMaterialDict(self.material_df)
 
@@ -102,26 +111,38 @@ class WallSimulation:
             self.K[i, i + 1] -= conductance
             self.K[i + 1, i] -= conductance
 
-    def _update_convection(self):
-        self.hCalced = WallSides(
-            convectionDOE2(self.h.front, self.windSpeed, self.roughness.front),
-            convectionDOE2(self.h.back, self.windSpeed, self.roughness.back))
-        for h in [self.hCalced.front, self.hCalced.back]:
+    def convection_metadata(self):
+        return {side: dict(model=getattr(self.convection, side),
+                          h_natural=getattr(self.h, side),
+                          tilt=getattr(self.tilt, side), azimuth=getattr(self.azimuth, side),
+                          wind_exposure=getattr(self.wind_exposure, side))
+                for side in ("front", "back")}
+
+    def _update_convection(self, front_air, back_air):
+        values = []
+        for side, air, index in [("front", front_air, 0), ("back", back_air, -1)]:
+            model = getattr(self.convection, side)
+            h = getattr(self.h, side)
+            if model == "legacy":
+                h = convectionDOE2(h, self.windSpeed, getattr(self.roughness, side))
             if not np.isfinite(h) or h < 0:
                 raise ValueError("Convection coefficients must be finite and nonnegative")
+            values.append(h)
+        self.hCalced = WallSides(*values)
 
     def initialize(self, delt, TfF, TfB, windSpeed=0, verbose=False):
         if not np.isfinite(delt) or delt <= 0:
             raise ValueError("Time step must be finite and positive")
         self.delt = delt
         self.windSpeed = windSpeed
-        self._update_convection()
+        self.T_prof = np.array([TfF, TfB], dtype=float)
+        self._update_convection(TfF, TfB)
         self.Erad = WallSides(0.0, 0.0)
         self.T = TfF + (TfB - TfF) * self.x[1:-1] / self.th
         self.T_prof = self.getWallProfile(TfF, TfB)
 
     def timeStep(self, TintF, TintB):
-        self._update_convection()
+        self._update_convection(TintF, TintB)
         old_profile = self.getWallProfile(TintF, TintB) if not self.implicit else None
         matrix = self.K.copy()
         source = np.zeros(self.n)

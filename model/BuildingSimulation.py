@@ -13,8 +13,13 @@ class BuildingSimulation():
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
         expected_kwards = set(["delt", "simLength", "Tbound", "windSpeed", "radG"])
-        if set(kwargs.keys()) != expected_kwards:
+        optional = {"interior_convection", "exterior_convection", "windDirection"}
+        if not expected_kwards <= set(kwargs) or set(kwargs) - expected_kwards - optional:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
+        self.interior_convection = kwargs.get("interior_convection", "legacy")
+        self.exterior_convection = kwargs.get("exterior_convection", "legacy")
+        self.windDirection = kwargs.get("windDirection", {})
+        self.metadata = {"convection": {}}
         self.t = 0 #time (seconds)
         self.hour = 0 #time (hours)
         self.times = np.arange(0, self.simLength + self.delt, self.delt)
@@ -58,16 +63,25 @@ class BuildingSimulation():
                       })
         for i, j, d in self.bG.G.edges(data=True):
             d["wall_kwargs"]["delt"] = self.delt
-            w = ws.WallSimulation(**d["wall_kwargs"]) # instantiate wall
+            options = dict(d["wall_kwargs"])
+            if "convection" not in options:
+                options["convection"] = WallSides(*[
+                    "fixed" if node == "FL" else self.exterior_convection
+                    if node in self.Tbound else self.interior_convection
+                    for node in (d["nodes"].front, d["nodes"].back)])
+            w = ws.WallSimulation(**options) # instantiate wall
             Tff = self.bG.G.nodes[d["nodes"].front]["room"].Tint #set wall front fabric temp    
             Tfb = self.bG.G.nodes[d["nodes"].back]["room"].Tint # set wall back fabric temp
             # set arbitrarily large convective heat transfer coefficient for floor-to-ground interface
             if d["nodes"].front == "FL":
                 w.h.front = 1e6
+                w.convection.front = "fixed"
             elif d["nodes"].back == "FL":
                 w.h.back = 1e6
+                w.convection.back = "fixed"
             w.initialize(self.delt, Tff, Tfb, verbose=verbose) #initialize wall
 
+            self.metadata["convection"][f"{i}:{j}"] = w.convection_metadata()
             T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
             T_profs[:, 0] = w.getWallProfile(Tff, Tfb) # store initial temperature profile
 
