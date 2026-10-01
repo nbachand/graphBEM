@@ -205,7 +205,8 @@ def run_intervals(building, forcing, previous, record=True):
     substeps = round(900/building.dt)
     for current in forcing:
         for sub in range(substeps):
-            sample = previous + (current-previous)*(sub+1)/substeps
+            fraction = (sub+1)/substeps
+            sample = (1-fraction)*previous + fraction*current
             if sample.shape[1] > 4:
                 sample[:, 4] = current[:, 4]  # EP interval direction; never interpolate across north.
             endpoint = building.step(sample)
@@ -335,6 +336,7 @@ def main():
         face_convection={str(e["sid"]):e["wall"].convection_metadata() for e in building.walls},
         roughness='Imported exterior material roughness; this case is Smooth, multiplier 1.11',
         forcing='EP local outdoor temperature, local wind and incident solar; EPW horizontal infrared. Linear interpolation between zone-timestep endpoints. Local standard time.',
+        wind_direction='EP zone-timestep endpoint, held within the interval',
         time_comparison='Endpoint samples; no indoor temperatures or net heat flows used as forcing.',
         warmup='Repeat first day to periodic state, at least 6 days. EP warm-up state unavailable; its 6..25 day settings and convergence criteria differ.',
         limitations=['Coefficients use previous GraphBEM surface state and current air; no EP thermal predictions prescribed',

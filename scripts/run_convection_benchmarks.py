@@ -13,6 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--case-root', type=Path, required=True)
     parser.add_argument('--jobs', type=int, default=3)
+    parser.add_argument("--resume", action="store_true", help="Skip completed runs")
     args = parser.parse_args()
     runs = []
     for climate, pattern in [('burbank', '*BURBANK*'), ('palm_springs', '*PALM-SPRINGS*'), ('arcata', '*ARCATA*')]:
@@ -31,6 +32,9 @@ def main():
                 '--ep-case', str(case), '--epw', str(epw), '--output', str(output), *options]))
     def run(item):
         output, command = item
+        if args.resume and (output/"metadata.json").exists():
+            print("Already complete", output.name, flush=True)
+            return
         output.mkdir(parents=True, exist_ok=True)
         env = dict(os.environ, MPLBACKEND='Agg', OPENBLAS_NUM_THREADS='1')
         print('Starting', output.name, flush=True)

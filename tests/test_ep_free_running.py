@@ -112,3 +112,19 @@ class FreeRunningTests(unittest.TestCase):
         coarse = np.sqrt(np.mean((records[0]-records[1])**2))
         fine = np.sqrt(np.mean((records[1]-records[2])**2))
         self.assertLess(fine, .7*coarse)
+
+    def test_wind_interpolation_stays_nonnegative_at_zero_endpoint(self):
+        from scripts.compare_ep_free_running import run_intervals
+        class Recorder:
+            dt = 60
+            def step(self, forcing):
+                self.last = forcing
+                self.minimum = min(self.minimum, forcing[0, 1])
+                return np.zeros((1, 2, 4)), np.zeros(1)
+        recorder = Recorder()
+        recorder.minimum = np.inf
+        previous = np.array([[300., .123456789, 300., 350., 359.]])
+        current = np.array([[300., 0., 300., 350., 1.]])
+        run_intervals(recorder, current[None], previous)
+        self.assertEqual(recorder.minimum, 0.)
+        np.testing.assert_array_equal(recorder.last, current)
