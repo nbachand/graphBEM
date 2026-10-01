@@ -30,9 +30,7 @@ class BuildingSimulation():
         for node in self.windSpeed:
             self.windSpeed[node] = getEquivalentTimeSeries(self.windSpeed[node], self.times)
         for node, direction in self.windDirection.items():
-            # Unwrap before resampling so 359 -> 1 passes through north.
-            unwrapped = np.degrees(np.unwrap(np.radians(np.atleast_1d(direction))))
-            self.windDirection[node] = getEquivalentTimeSeries(unwrapped, self.times) % 360
+            self.windDirection[node] = np.asarray(getEquivalentTimeSeries(direction, self.times)) % 360
         for node in self.radG:
             forcing = self.radG[node]
             if isinstance(forcing, dict):
@@ -73,6 +71,13 @@ class BuildingSimulation():
                     "fixed" if node == "FL" else self.exterior_convection
                     if node in self.Tbound else self.interior_convection
                     for node in (d["nodes"].front, d["nodes"].back)])
+            if "tilt" not in options:
+                # Face normals point into the adjoining air, not into the wall.
+                if "RF" in (i, j) or "FL" in (i, j):
+                    boundary = "RF" if "RF" in (i, j) else "FL"
+                    back_tilt = 0. if boundary == "RF" else 180.
+                    options["tilt"] = (WallSides(180-back_tilt, back_tilt)
+                        if d["nodes"].back == boundary else WallSides(back_tilt, 180-back_tilt))
             w = ws.WallSimulation(**options) # instantiate wall
             Tff = self.bG.G.nodes[d["nodes"].front]["room"].Tint #set wall front fabric temp    
             Tfb = self.bG.G.nodes[d["nodes"].back]["room"].Tint # set wall back fabric temp

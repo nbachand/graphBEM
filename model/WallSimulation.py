@@ -1,6 +1,6 @@
 import numpy as np
 from model.utils import WallSides
-from model.Convection import exterior_convection
+from model.Convection import exterior_convection, natural_convection
 
 
 def convectionDOE2(h_nat, V, R_f):
@@ -68,7 +68,7 @@ class WallSimulation:
         self.wind_exposure = kwargs.get("wind_exposure", WallSides("directional", "directional"))
         self.windDirection = None
         for side in ("front", "back"):
-            if getattr(self.convection, side) not in {"legacy", "fixed", "doe2", "doe2_fixed_natural"}:
+            if getattr(self.convection, side) not in {"legacy", "fixed", "tarp", "doe2", "doe2_fixed_natural"}:
                 raise ValueError("Unknown convection model")
         self.Af = self.X * self.Y
         self.processMaterialDict(self.material_df)
@@ -126,6 +126,8 @@ class WallSimulation:
             h = getattr(self.h, side)
             if model == "legacy":
                 h = convectionDOE2(h, self.windSpeed, getattr(self.roughness, side))
+            if model == "tarp":
+                h = max(.1, natural_convection(self.T_prof[index], air, getattr(self.tilt, side)))
             if model in {"doe2", "doe2_fixed_natural"}:
                 h = exterior_convection(self.T_prof[index], air, self.windSpeed,
                     getattr(self.roughness, side), getattr(self.tilt, side),
