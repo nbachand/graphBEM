@@ -6,6 +6,22 @@ from model.BuildingGraph import draw
 
 EXTERIOR_EMISSIVITY = 0.9
 
+def incident_longwave(horizontal_ir, air_temperature, tilt, sky_model="isotropic"):
+    """Unobstructed sky irradiance; surroundings are at outdoor air temperature.
+
+    EnergyPlus sky/air split: Engineering Reference 22.2, Outside Surface Heat
+    Balance, External Longwave Radiation. Input IR already includes sky emissivity.
+    """
+    if sky_model not in {"isotropic", "energyplus"}:
+        raise ValueError("Unknown sky model")
+    if not 0 <= tilt <= 180:
+        raise ValueError("Face tilt must be in [0, 180]")
+    view = (1 + np.cos(np.radians(tilt))) / 2
+    if sky_model == "energyplus":
+        view *= np.sqrt(view)
+    return view*horizontal_ir + (1-view)*5.67e-8*air_temperature**4
+
+
 def getVFAlignedRectangles(X, Y, L):
     Xbar = X / L
     Ybar = Y / L
@@ -39,9 +55,14 @@ class Radiation:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
         expected_kwards = set(["solveType"])
-        if not expected_kwards <= set(kwargs) or set(kwargs) - expected_kwards - {"storyHeight", "emissivity"}:
+        if not expected_kwards <= set(kwargs) or set(kwargs) - expected_kwards - {"storyHeight", "emissivity", "sky_model"}:
             raise Exception(f"Invalid keyword arguments, expected {expected_kwards}")
         
+        self.sky_model = kwargs.get("sky_model", "precombined")
+        if self.sky_model not in {"precombined", "isotropic", "energyplus"}:
+            raise ValueError("Unknown sky model")
+        self.horizontalIR = None
+        self.airTemperature = None
         # Constants
         self.sigma = 5.67e-8
         self.storyHeight = kwargs.get("storyHeight", 3)
@@ -127,12 +148,21 @@ class Radiation:
         if self.solveType == "sky":
             # Spectral bands must remain separate: sky emissivity is already
             # represented by the weather-file infrared irradiance.
-            return pd.Series({
-                n: self.roomNode[n]["wall"].absorptivity * self.solarGain
-                   + EXTERIOR_EMISSIVITY * (self.longwaveGain
-                       - self.sigma * self.roomNode[n]["wall"].T_prof[d["T_index"]]**4)
-                for n, d in self.G.nodes(data=True) if n != "sky"
-            })
+            result = {}
+            for n, d in self.G.nodes(data=True):
+                if n == "sky":
+                    continue
+                wall = self.roomNode[n]["wall"]
+                incoming = self.longwaveGain
+                if self.sky_model != "precombined":
+                    if self.horizontalIR is None or self.airTemperature is None:
+                        raise ValueError("Sky model requires horizontal IR and outdoor air temperature")
+                    side = "front" if d["T_index"] == 0 else "back"
+                    incoming = incident_longwave(self.horizontalIR, self.airTemperature,
+                                                getattr(wall.tilt, side), self.sky_model)
+                result[n] = (wall.absorptivity*self.solarGain + EXTERIOR_EMISSIVITY*
+                             (incoming-self.sigma*wall.T_prof[d["T_index"]]**4))
+            return pd.Series(result)
         Eb = np.array([self.sigma * self.roomNode[n]["wall"].T_prof[d["T_index"]]**4
                        for n, d in self.G.nodes(data=True)])
         J = pd.Series(np.linalg.solve(self.A, Eb), index=self.A.index)

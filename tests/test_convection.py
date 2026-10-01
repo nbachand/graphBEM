@@ -58,3 +58,13 @@ class ConvectionTests(unittest.TestCase):
             power = w.timeStep(295+np.sin(k), 305+np.cos(k))
             storage = w.capacity @ (w.T-before)/w.delt
             self.assertAlmostEqual(storage, 180-(power.front+power.back)/w.Af, delta=1e-7)
+
+    def test_sky_models_equilibrium_and_orientation(self):
+        from model.Radiation import incident_longwave as ir
+        black = 5.67e-8*300**4
+        for model in ['isotropic', 'energyplus']:
+            for tilt in [0, 90, 180]:
+                self.assertAlmostEqual(ir(black, 300, tilt, model), black)
+            self.assertEqual(ir(300, 300, 0, model), 300)
+            self.assertEqual(ir(300, 300, 180, model), black)
+        self.assertGreater(ir(300, 300, 90, 'energyplus'), ir(300, 300, 90, 'isotropic'))

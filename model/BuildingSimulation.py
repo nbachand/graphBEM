@@ -34,7 +34,7 @@ class BuildingSimulation():
         for node in self.radG:
             forcing = self.radG[node]
             if isinstance(forcing, dict):
-                if set(forcing) != {"shortwave", "longwave"}:
+                if set(forcing) not in ({"shortwave", "longwave"}, {"shortwave", "sky_horizontal"}):
                     raise ValueError("Radiation forcing needs shortwave and longwave bands")
                 self.radG[node] = {band: getEquivalentTimeSeries(values, self.times)
                                    for band, values in forcing.items()}
@@ -116,6 +116,7 @@ class BuildingSimulation():
             if verbose:
                 print(f"Initializing radiation for {n}")
             rad.initialize(self.bG.G[n])
+            self.metadata.setdefault("sky_models", {})[n] = rad.sky_model
             d.update({"rad": rad})
 
 
@@ -132,7 +133,13 @@ class BuildingSimulation():
                     forcing = self.radG[n]
                     if isinstance(forcing, dict):
                         d["rad"].solarGain = forcing["shortwave"][c]
-                        d["rad"].longwaveGain = forcing["longwave"][c]
+                        if "sky_horizontal" in forcing:
+                            if d["rad"].sky_model == "precombined":
+                                raise ValueError("Horizontal IR requires an explicit sky model")
+                            d["rad"].horizontalIR = forcing["sky_horizontal"][c]
+                            d["rad"].airTemperature = self.Tbound[n][c]
+                        else:
+                            d["rad"].longwaveGain = forcing["longwave"][c]
                     else:
                         d["rad"].solarGain = forcing[c]
                         d["rad"].longwaveGain = 0
