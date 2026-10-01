@@ -85,3 +85,30 @@ class FreeRunningTests(unittest.TestCase):
             frame['Surface Inside Face Temperature'] = [-1000., 1000.]
             frame['Surface Outside Face Net Thermal Radiation Heat Gain Rate per Area'] = [1e9, -1e9]
         np.testing.assert_array_equal(forcing, build_forcing(building, data, np.array([300., 310.])))
+
+    def test_variable_model_equilibrium_and_timestep_convergence(self):
+        records = []
+        for dt in [60, 30, 15]:
+            building = FreeBuilding(*case(), dt=dt, cells=4,
+                                    interior='tarp', exterior='doe2', sky='energyplus')
+            forcing = np.tile([291.15, 0., 0., 5.67e-8*291.15**4, 0.], (6, 1))
+            building.rooms[1].Tint = 291.15
+            for e in building.walls:
+                e['wall'].initialize(dt, 291.15, 291.15, windDirection=0.)
+            original = building.state()
+            building.step(forcing)
+            np.testing.assert_allclose(original, building.state(), atol=1e-10)
+            forcing[:, 0] = 301.15
+            forcing[:, 1] = 2.
+            forcing[:, 2] = 300.
+            temperatures = []
+            for k in range(int(7200/dt)):
+                building.step(forcing)
+                if (k+1) % int(60/dt) == 0:
+                    temperatures.append(building.rooms[1].Tint)
+            self.assertEqual(building.walls[-1]['wall'].convection.back, 'fixed')
+            self.assertLess(building.max_energy_residual, 1e-6)
+            records.append(np.array(temperatures))
+        coarse = np.sqrt(np.mean((records[0]-records[1])**2))
+        fine = np.sqrt(np.mean((records[1]-records[2])**2))
+        self.assertLess(fine, .7*coarse)

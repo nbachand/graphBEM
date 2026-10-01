@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from model.WallSimulation import WallSimulation
 from model.RoomSimulation import RoomSimulation
-from model.Radiation import Radiation
+from model.Radiation import Radiation, incident_longwave
 from model.utils import WallSides
 from scripts.compare_ep_replay import read_case, face_data
 
@@ -73,8 +73,10 @@ def radiation_operator(rad):
 
 
 class FreeBuilding:
-    def __init__(self, zones, surfaces, constructions, builds, dt=60, cells=18):
+    def __init__(self, zones, surfaces, constructions, builds, dt=60, cells=18,
+                 interior="legacy", exterior="legacy", h_natural=2., sky="isotropic"):
         self.dt = dt
+        self.models = dict(interior=interior, exterior=exterior, h_natural=h_natural, sky=sky)
         self.rooms = {}
         self.walls = []
         self.enclosures = []
@@ -109,10 +111,13 @@ class FreeBuilding:
             roughness = (ROUGHNESS_MULTIPLIERS[int(builds[surface.ConstructionIndex].iloc[-1].Roughness)]
                          if pair == 0 else 0.)
             wall = WallSimulation(X=x, Y=y, material_df=builds[surface.ConstructionIndex],
-                h=WallSides(2., 1e8 if pair == -1 else 2.),
+                h=WallSides(h_natural, 1e8 if pair == -1 else h_natural),
+                convection=WallSides(interior, "fixed" if pair == -1 else interior if pair > 0 else exterior),
+                tilt=WallSides(180-surface.Tilt, surface.Tilt),
+                azimuth=WallSides((surface.Azimuth+180)%360, surface.Azimuth),
                 roughness=WallSides(0., roughness),
                 absorptivity=construction.OutsideAbsorpSolar, n=cells, delt=dt, implicit=True)
-            wall.initialize(dt, 298.15, 291.15 if pair == -1 else 298.15)
+            wall.initialize(dt, 298.15, 291.15 if pair == -1 else 298.15, windDirection=0.)
             np.testing.assert_allclose(wall.total_resistance, 1/construction.Uvalue, rtol=1e-10)
             category = 'partition' if pair > 0 else surface.ClassName.lower()
             self.walls.append(dict(sid=sid, pair=pair, front=front, back=back, wall=wall,
@@ -169,10 +174,11 @@ class FreeBuilding:
             elif pair == -1:
                 back_air = 291.15
             else:
-                back_air, wind, sw, ir = forcing[i]
+                back_air, wind, sw, ir = forcing[i, :4]
+                if forcing.shape[1] > 4:
+                    wall.windDirection = forcing[i, 4]
                 wall.windSpeed = wind
-                sky_view = (1 + np.cos(np.radians(entry['surface'].Tilt))) / 2
-                longwave = sky_view*ir + (1-sky_view)*SIGMA*back_air**4
+                longwave = incident_longwave(ir, back_air, entry["surface"].Tilt, self.models["sky"])
                 rad[i, 1] = wall.absorptivity*sw + entry['exterior_emissivity']*(longwave-SIGMA*wall.T_prof[-1]**4)
             wall.Erad = WallSides(*rad[i])
             power = wall.timeStep(front_air, back_air)
@@ -199,7 +205,10 @@ def run_intervals(building, forcing, previous, record=True):
     substeps = round(900/building.dt)
     for current in forcing:
         for sub in range(substeps):
-            endpoint = building.step(previous + (current-previous)*(sub+1)/substeps)
+            sample = previous + (current-previous)*(sub+1)/substeps
+            if sample.shape[1] > 4:
+                sample[:, 4] = current[:, 4]  # EP interval direction; never interpolate across north.
+            endpoint = building.step(sample)
         if record:
             surfaces.append(endpoint[0])
             rooms.append(endpoint[1])
@@ -208,7 +217,8 @@ def run_intervals(building, forcing, previous, record=True):
 
 
 def build_forcing(building, data, ir):
-    forcing = np.zeros((len(ir), len(building.walls), 4))
+    directional = building.models["exterior"] in {"doe2", "doe2_fixed_natural"}
+    forcing = np.zeros((len(ir), len(building.walls), 5 if directional else 4))
     for i, entry in enumerate(building.walls):
         if entry['pair'] != 0:
             continue
@@ -217,6 +227,8 @@ def build_forcing(building, data, ir):
         forcing[:, i, 1] = frame['Surface Outside Face Outdoor Air Wind Speed']
         forcing[:, i, 2] = frame['Surface Outside Face Incident Solar Radiation Rate per Area']
         forcing[:, i, 3] = ir
+        if directional:
+            forcing[:, i, 4] = frame["Surface Outside Face Outdoor Air Wind Direction"]
     if not np.isfinite(forcing).all():
         raise ValueError('Nonfinite exterior forcing')
     return forcing
@@ -241,17 +253,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ep-case', type=Path, required=True)
     parser.add_argument('--epw', type=Path, required=True)
-    parser.add_argument('--output', type=Path, default=ROOT/'analysis/energyplus_free_running/base')
+    parser.add_argument('--output', type=Path, default=ROOT/'analysis/convection_models/burbank_variable')
     parser.add_argument('--dt', type=float, default=60)
     parser.add_argument('--cells', type=int, default=18)
     parser.add_argument('--days', type=int, default=31)
     parser.add_argument('--warmup-tolerance', type=float, default=.001)
+    parser.add_argument('--interior', choices=['legacy', 'fixed', 'tarp'], default='tarp')
+    parser.add_argument('--exterior', choices=['legacy', 'fixed', 'doe2', 'doe2_fixed_natural'], default='doe2')
+    parser.add_argument('--h-natural', type=float, default=2.)
+    parser.add_argument('--sky', choices=['isotropic', 'energyplus'], default='energyplus')
     args = parser.parse_args()
     if args.dt <= 0 or not np.isclose(900/args.dt, round(900/args.dt)) or not 1 <= args.days <= 31 or args.warmup_tolerance <= 0:
         parser.error('dt must divide 900; days must be 1..31; warmup tolerance must be positive')
     surfaces, constructions, builds, times, data = read_case(args.ep_case)
     zones, ep_rooms = read_zones(args.ep_case, times)
-    building = FreeBuilding(zones, surfaces, constructions, builds, args.dt, args.cells)
+    building = FreeBuilding(zones, surfaces, constructions, builds, args.dt, args.cells,
+                            args.interior, args.exterior, args.h_natural, args.sky)
     forcing = build_forcing(building, data, weather_ir(args.epw, times))
     warmup = []
     for day in range(1, 101):
@@ -314,20 +331,21 @@ def main():
         warmup_days=len(warmup), warmup_tolerance_K=args.warmup_tolerance,
         max_energy_residual_W=building.max_energy_residual,
         ground_temperature_C=18, interior_emissivity=.9, exterior_emissivity=.9,
-        inside_h_W_m2K=2, outside_natural_h_W_m2K=2,
+        convection_models=building.models,
+        face_convection={str(e["sid"]):e["wall"].convection_metadata() for e in building.walls},
         roughness='Imported exterior material roughness; this case is Smooth, multiplier 1.11',
         forcing='EP local outdoor temperature, local wind and incident solar; EPW horizontal infrared. Linear interpolation between zone-timestep endpoints. Local standard time.',
         time_comparison='Endpoint samples; no indoor temperatures or net heat flows used as forcing.',
         warmup='Repeat first day to periodic state, at least 6 days. EP warm-up state unavailable; its 6..25 day settings and convergence criteria differ.',
-        limitations=['GraphBEM convection correlations retained, not EP coefficients',
+        limitations=['Coefficients use previous GraphBEM surface state and current air; no EP thermal predictions prescribed',
                      'GraphBEM enclosure radiation omits wall-to-wall exchange and approximates split-wall view factors',
-                     'GraphBEM sky/ground hemispheric view factors retained',
+                     'Sky model selected independently; surrounding ground radiates at outdoor air temperature',
                      'Incident sunlight supplied by EP, so solar transposition is not independently tested',
                      'Constant GraphBEM air density and heat capacity retained',
                      'First midnight starts from repeated first-day final weather sample'],
         hashes={str(path):hashlib.sha256(path.read_bytes()).hexdigest() for path in
                 [args.ep_case/'results/eplusout.sql', args.epw, Path(__file__), ROOT/'model/WallSimulation.py',
-                 ROOT/'model/Radiation.py', ROOT/'model/RoomSimulation.py']})
+                 ROOT/'model/Radiation.py', ROOT/'model/RoomSimulation.py', ROOT/'model/Convection.py']})
     (args.output/'metadata.json').write_text(json.dumps(metadata, indent=2)+'\n')
     plot(rooms, results, args.output)
     cutoff = start+pd.Timedelta(days=min(7, args.days-1))

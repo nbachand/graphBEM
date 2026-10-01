@@ -82,3 +82,5 @@ analysis/energyplus_replay/*/timeseries.csv.gz
 analysis/energyplus_free_running/*/surface_timeseries.csv.gz
 analysis/energyplus_free_running/legacy_roughness_*/
 analysis/energyplus_diagnosis/*/surface_timeseries.csv.gz
+
+analysis/convection_models/*/surface_timeseries.csv.gz

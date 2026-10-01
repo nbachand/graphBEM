@@ -27,3 +27,20 @@ class DiagnosisTests(unittest.TestCase):
             np.testing.assert_array_equal(forcing,original)
             self.assertLess(building.max_energy_residual,1e-6)
             self.assertTrue(np.isfinite(building.state()).all())
+
+    def test_production_models_reproduce_independent_diagnostic(self):
+        production = FreeBuilding(*case(), dt=60, cells=4, interior='tarp', exterior='doe2', sky='energyplus')
+        diagnostic = CounterfactualBuilding(*case(), dt=60, cells=4,
+            variant='all_convection_and_sky', directions=np.full((1, 6), 210.))
+        for p, d in zip(production.walls, diagnostic.walls):
+            # Common initial thermal state; the old diagnostic initialized at fixed h.
+            d['wall'].T = p['wall'].T.copy()
+            d['wall'].T_prof = p['wall'].T_prof.copy()
+        forcing = np.tile([295.15, 2., 300., 350.], (6, 1))
+        extended = np.column_stack([forcing, np.full(6, 210.)])
+        for _ in range(100):
+            a = production.step(extended)
+            b = diagnostic.step(forcing)
+            np.testing.assert_allclose(a[0], b[0], atol=2e-9)
+            np.testing.assert_allclose(a[1], b[1], atol=1e-10)
+        self.assertLess(production.max_energy_residual, 1e-6)
