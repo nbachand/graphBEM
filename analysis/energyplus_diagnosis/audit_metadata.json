@@ -1,0 +1,16 @@
+{
+  "period": "August 8-31, 2017 local standard time",
+  "method": "Same-state constitutive audit followed by independently free-running correlation variants",
+  "sources": {
+    "https://github.com/NREL/EnergyPlus/blob/v22.2.0/src/EnergyPlus/ConvectionCoefficients.cc": "df3ca14b6fa69aea5a51e240d71db5f52a4b2ce4578f620dd264156be4301fa3",
+    "https://github.com/NREL/EnergyPlus/blob/v22.2.0/src/EnergyPlus/ConvectionCoefficients.hh": "57f75a1bddc6acf92b8d49850ee79c3ceb7e0037135ac4371858772f1ed9dac0",
+    "https://github.com/NREL/EnergyPlus/blob/v22.2.0/src/EnergyPlus/HeatBalanceSurfaceManager.cc": "d011ab9c59c6ee58deb4538e8372b7ce1ab88b3a2d77749d1a27bce3b5572a84"
+  },
+  "notes": [
+    "EP exterior h and radiation coefficients use the preceding zone-timestep surface temperature.",
+    "EP source uses 7.238 in unstable natural convection, while its 22.2 Engineering Reference prints 7.283.",
+    "RMS decomposition components do not add; biases do. Temperature-feedback term also includes the GraphBEM 30s explicit radiation lag.",
+    "Changing sky split is a model-choice sensitivity, not proof that isotropic sky is an implementation error.",
+    "Correlation variants retain GraphBEM time integration and enclosure radiation. They do not reproduce EP time integration exactly."
+  ]
+}

@@ -312,3 +312,44 @@ MPLBACKEND=Agg python scripts/summarize_ep_free_running.py
 ```
 
 Results: [room temperatures](analysis/energyplus_free_running/refined/room_comparison.png), [interior surface heat flows](analysis/energyplus_free_running/refined/surface_comparison.png), [exterior heat flows](analysis/energyplus_free_running/exterior_comparison.png), [all metrics](analysis/energyplus_free_running/summary.csv), [refinement](analysis/energyplus_free_running/refinement.csv), and [geometry](analysis/energyplus_free_running/refined/geometry.csv). Full surface histories are retained locally and excluded from Git. Metadata records source hashes, assumptions and warm-up convergence.
+
+### Attribution of the remaining free-running errors
+
+`scripts/diagnose_ep_discrepancies.py` evaluates the heat-transfer laws at identical EnergyPlus temperatures, then runs independent building simulations with selected correlation changes. Production physics is not modified by these experiments. All sensitivity runs use 60 s, 18 target wall cells, converged first-day warm-up and the same geometry, materials and exterior forcing as the base benchmark. No EnergyPlus room temperatures, surface temperatures or heat flows are prescribed during the sensitivity runs.
+
+Exterior convection is the main source of the hot roof. `convectionDOE2` averages the older wind coefficients and exponents, ignores wind direction and uses a constant natural-convection contribution of 2 W/m²K. EnergyPlus 22.2 instead selects windward or leeward coefficients suited to local surface wind and evaluates natural convection from temperature difference and tilt. At identical EnergyPlus temperatures, GraphBEM's convection flux differs by 24.9 W/m² RMS on walls and 59.1 W/m² on roofs. The average convection coefficients are 3.77 versus 4.70 W/m²K for walls and 4.10 versus 5.63 for roofs. Reconstructing the EnergyPlus calculation with the previous zone-timestep surface temperature reproduces its roof coefficient to numerical precision and wall convection to 0.0009 W/m² RMS.
+
+The large roof radiation error mostly follows from the hotter surface. At identical surface temperatures, radiation disagreement drops from 37.2 to 1.59 W/m² RMS. Almost all of that smaller difference comes from EnergyPlus holding radiative coefficients computed from the previous 15-minute surface temperature. Reconstructing that linearization reproduces roof longwave flux to numerical precision.
+
+The vertical-wall sky difference is distinct. GraphBEM applies the EPW horizontal infrared uniformly over the visible sky hemisphere. EnergyPlus assigns part of that exposure to air-temperature radiation: its effective sky factor is 0.3536 rather than 0.5 for a vertical wall. This approximates directional atmospheric radiation and adds about 9.8 W/m² of incident wall heat relative to GraphBEM in this case. It is a sky-model choice, not evidence of an emission-sign or emissivity error. Horizontal roofs have no such sky/air split. The small difference in Stefan–Boltzmann constants is included in the saved decomposition and is negligible here.
+
+The controlled runs show why room-temperature agreement alone can mislead. Correcting exterior convection without changing GraphBEM's sky assumption produces a cool bias; changing the sky assumption alone increases the warm bias. The following values pool all four rooms over August 8–31:
+
+| Diagnostic calculation | Room RMSE, °C | Room bias, °C |
+|---|---:|---:|
+| Base GraphBEM | 0.684 | +0.665 |
+| EnergyPlus exterior convection correlation | 0.480 | −0.466 |
+| EnergyPlus sky/air split | 1.201 | +1.189 |
+| Both exterior changes | 0.126 | +0.001 |
+| Both, plus EnergyPlus-style interior convection | 0.104 | +0.048 |
+
+With both exterior changes, roof surface-temperature RMSE falls from 4.59 to 0.17 K. Roof convection and radiation errors fall from 38.7 and 37.1 to 0.67 and 0.42 W/m². The wall flux errors fall from about 19 and 18 to 0.55 and 0.49 W/m². These runs support the causal diagnosis without prescribing EnergyPlus thermal predictions.
+
+Interior differences are smaller. GraphBEM's fixed h=2 exceeds EnergyPlus's mean interior coefficients of roughly 0.6–1.0 W/m²K in this case. At identical temperatures, the approximate GraphBEM enclosure radiation network differs by 1.58 W/m² RMS on exterior-wall interior faces and 1.10 on partitions, versus 0.068 on floors and 0.166 on ceilings. The omitted wall-to-wall exchange and split-wall view-factor approximations remain possible sources of this enclosure disagreement; their contributions have not been isolated from each other.
+
+The residual is not fully attributed. The final diagnostic variant has room RMSE 0.347°C over the full month, 0.104°C after excluding one week and 0.057°C after excluding two weeks. This is consistent with a remaining initialization contribution, but the periods also have different weather. EnergyPlus's warm-up state remains unavailable. The variants retain GraphBEM's timestep coupling, constant air properties and wall discretization. Their exterior coefficients use the previous 60-second surface state, while EnergyPlus evaluates them before each 15-minute outside-surface solve. Wind direction is held at the reported 15-minute endpoint in these diagnostic runs. Whole-building energy residuals stay below 2.4e-7 W.
+
+The practical next change is to make the exterior convection implementation consistent with the intended DOE-2 correlation and wind-height convention. Sky angular treatment should be an explicit model choice. Interior convection can then be made temperature- and orientation-dependent. The evidence does not point to another large conduction defect, though smaller conduction and initialization residuals remain.
+
+Sources: [EnergyPlus convection implementation](https://github.com/NREL/EnergyPlus/blob/v22.2.0/src/EnergyPlus/ConvectionCoefficients.cc), [natural-convection formulas](https://github.com/NREL/EnergyPlus/blob/v22.2.0/src/EnergyPlus/ConvectionCoefficients.hh), [exterior radiation reporting](https://github.com/NREL/EnergyPlus/blob/v22.2.0/src/EnergyPlus/HeatBalanceSurfaceManager.cc), and [exterior heat-balance documentation](https://bigladdersoftware.com/epx/docs/22-2/engineering-reference/outside-surface-heat-balance.html). The source uses 7.238 in the unstable natural-convection denominator; the 22.2 Engineering Reference prints 7.283. The diagnostics follow the source and verify against the saved outputs.
+
+```bash
+python scripts/diagnose_ep_discrepancies.py --audit
+python scripts/diagnose_ep_discrepancies.py --variant exterior_convection
+python scripts/diagnose_ep_discrepancies.py --variant sky
+python scripts/diagnose_ep_discrepancies.py --variant exterior_and_sky
+python scripts/diagnose_ep_discrepancies.py --variant all_convection_and_sky
+MPLBACKEND=Agg python scripts/summarize_ep_diagnosis.py
+```
+
+Results: [causal comparison plot](analysis/energyplus_diagnosis/causal_comparison.png), [sensitivity summary](analysis/energyplus_diagnosis/causal_summary.csv), [same-state exterior convection](analysis/energyplus_diagnosis/exterior_same_state.csv), [radiation decomposition](analysis/energyplus_diagnosis/radiation_decomposition.csv), and [enclosure radiation](analysis/energyplus_diagnosis/enclosure_same_state.csv). RMS components are not additive. Metadata records the audit source hashes and each variant's settings.

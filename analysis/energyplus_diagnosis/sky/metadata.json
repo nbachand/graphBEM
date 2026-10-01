@@ -1,0 +1,17 @@
+{
+  "variant": "sky",
+  "dt": 60,
+  "cells": 18,
+  "warmup_days": 37,
+  "warmup_change_K": 0.0008478918979335504,
+  "max_energy_residual_W": 2.315618985448964e-07,
+  "independent": true,
+  "exterior_h_evaluation": "Previous 60s surface state, current weather",
+  "wind_direction": "Current EP 15-minute endpoint; held within interval",
+  "source_hashes": {
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/scripts/diagnose_ep_discrepancies.py": "532874a68eadf1058a1c1ae51323d0b9adb9d35e8a08cd06c94e0e46ff33c888",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/scripts/compare_ep_free_running.py": "5286f15d028c8f93d60ce59973a1996a598803833d22cc52c3af39aa1f229d7d",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/model/WallSimulation.py": "900dc6d05ab47af32b034e26097cf499348bbcd35bc1d46fd433762c161ff881",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/model/Radiation.py": "0d9b8cf27239b1fdd148082aebf91f585d2f9910c7320b65fb5b048f9994c822"
+  }
+}

@@ -1,0 +1,5 @@
+category,law,error_rmse,error_bias
+floor,graph_enclosure_at_ep_Ts,0.06780580414335126,0.016982597094070663
+partition,graph_enclosure_at_ep_Ts,1.0990674902848039,-0.13559810457099367
+roof,graph_enclosure_at_ep_Ts,0.16576301534363036,-0.051532848766371306
+wall,graph_enclosure_at_ep_Ts,1.58250944445629,0.1627851878458598
