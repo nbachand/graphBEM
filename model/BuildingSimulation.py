@@ -29,6 +29,10 @@ class BuildingSimulation():
             self.Tbound[node] = getEquivalentTimeSeries(self.Tbound[node], self.times)
         for node in self.windSpeed:
             self.windSpeed[node] = getEquivalentTimeSeries(self.windSpeed[node], self.times)
+        for node, direction in self.windDirection.items():
+            # Unwrap before resampling so 359 -> 1 passes through north.
+            unwrapped = np.degrees(np.unwrap(np.radians(np.atleast_1d(direction))))
+            self.windDirection[node] = getEquivalentTimeSeries(unwrapped, self.times) % 360
         for node in self.radG:
             forcing = self.radG[node]
             if isinstance(forcing, dict):
@@ -79,7 +83,9 @@ class BuildingSimulation():
             elif d["nodes"].back == "FL":
                 w.h.back = 1e6
                 w.convection.back = "fixed"
-            w.initialize(self.delt, Tff, Tfb, verbose=verbose) #initialize wall
+            boundary = next((node for node in (i, j) if node in self.windSpeed), None)
+            direction = self.windDirection[boundary][0] if boundary in self.windDirection else None
+            w.initialize(self.delt, Tff, Tfb, verbose=verbose, windDirection=direction) #initialize wall
 
             self.metadata["convection"][f"{i}:{j}"] = w.convection_metadata()
             T_profs = np.zeros((w.n + 2, self.N)) # intializing matrix to store temperature profiles
@@ -155,6 +161,9 @@ class BuildingSimulation():
                     d["wall"].windSpeed = self.windSpeed[j][c]
                 else:
                     d["wall"].windSpeed = 0
+                boundary = next((node for node in (i, j) if node in self.windSpeed), None)
+                d["wall"].windDirection = (self.windDirection[boundary][c]
+                                          if boundary in self.windDirection else None)
                 Ef = d["wall"].timeStep(self.bG.G.nodes[d["nodes"].front]["room"].Tint, self.bG.G.nodes[d["nodes"].back]["room"].Tint)
                 self.bG.G.nodes[d["nodes"].front]["Ef"] += Ef.front * d["weight"]
                 self.bG.G.nodes[d["nodes"].back]["Ef"] += Ef.back * d["weight"]
