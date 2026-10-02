@@ -425,3 +425,9 @@ low-level `FreeBuilding` constructor retains legacy defaults for the existing
 attribution scripts. Fixed sensitivity cases change interior h and the exterior
 natural component together to 1, 2 or 3 W/m²K. They retain DOE-2 wind convection
 and the same sky split. These are sensitivity cases, not confidence bounds.
+
+Results from the completed three-climate runs, including the rain-boundary
+qualification, are in [the convection comparison report](analysis/convection_models/README.md).
+The new models give room RMSE of 0.104°C in Burbank, 0.115°C in Palm Springs and
+0.078°C in Arcata for August 8–31. Full-month and initialization sensitivity
+results are included in that report.

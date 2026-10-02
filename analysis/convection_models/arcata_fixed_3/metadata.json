@@ -1,0 +1,377 @@
+{
+  "timestep_seconds": 60,
+  "target_cells": 18,
+  "days": 31,
+  "warmup_days": 32,
+  "warmup_tolerance_K": 0.001,
+  "max_energy_residual_W": 2.0445372683752794e-07,
+  "ground_temperature_C": 18,
+  "interior_emissivity": 0.9,
+  "exterior_emissivity": 0.9,
+  "convection_models": {
+    "interior": "fixed",
+    "exterior": "doe2_fixed_natural",
+    "h_natural": 3.0,
+    "sky": "energyplus"
+  },
+  "face_convection": {
+    "1": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 90.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 270.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "2": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "3": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 270.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 90.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "4": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "5": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 0.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "fixed",
+        "h_natural": 100000000.0,
+        "tilt": 180.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "6": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 180.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 0.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "7": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "9": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 270.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 90.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "10": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "11": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 0.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "fixed",
+        "h_natural": 100000000.0,
+        "tilt": 180.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "12": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 180.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 0.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "13": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "14": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 90.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 270.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "17": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 270.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 90.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "18": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 0.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "fixed",
+        "h_natural": 100000000.0,
+        "tilt": 180.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "19": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 180.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 0.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "20": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 270.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 90.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "21": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "22": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 90.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "25": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 0.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "fixed",
+        "h_natural": 100000000.0,
+        "tilt": 180.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    },
+    "26": {
+      "front": {
+        "model": "fixed",
+        "h_natural": 3.0,
+        "tilt": 180.0,
+        "azimuth": 180.0,
+        "wind_exposure": "directional"
+      },
+      "back": {
+        "model": "doe2_fixed_natural",
+        "h_natural": 3.0,
+        "tilt": 0.0,
+        "azimuth": 0.0,
+        "wind_exposure": "directional"
+      }
+    }
+  },
+  "roughness": "Imported exterior material roughness; this case is Smooth, multiplier 1.11",
+  "forcing": "EP local outdoor temperature, local wind and incident solar; EPW horizontal infrared. Linear interpolation between zone-timestep endpoints. Local standard time.",
+  "wind_direction": "EP zone-timestep endpoint, held within the interval",
+  "time_comparison": "Endpoint samples; no indoor temperatures or net heat flows used as forcing.",
+  "warmup": "Repeat first day to periodic state, at least 6 days. EP warm-up state unavailable; its 6..25 day settings and convergence criteria differ.",
+  "limitations": [
+    "Coefficients use previous GraphBEM surface state and current air; no EP thermal predictions prescribed",
+    "GraphBEM enclosure radiation omits wall-to-wall exchange and approximates split-wall view factors",
+    "Sky model selected independently; surrounding ground radiates at outdoor air temperature",
+    "Incident sunlight supplied by EP, so solar transposition is not independently tested",
+    "Constant GraphBEM air density and heat capacity retained",
+    "First midnight starts from repeated first-day final weather sample"
+  ],
+  "hashes": {
+    "/Users/nicholasbachand/codes/plan2EPlus/cases/graphbem_cali/CA_ARCATA-AP_725945S_CZ2022/results/eplusout.sql": "c7e6b37926238930db3aa4ce0d0574727f183a8048fe55e8730076b2e8a9feb9",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/energyPlus/weather/CAClimateZones/CA_ARCATA-AP_725945S_CZ2022/CA_ARCATA-AP_725945S_CZ2022.epw": "2bbc19642b46cbeeb45a70fc3e5b27ae4d11c48da6e0758d0677c341f3c1716d",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/scripts/compare_ep_free_running.py": "1089ead215c358adfee195c8d32c00ffc8276184d26f77d40fe55947606dac78",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/model/WallSimulation.py": "980e6ffc515369ee8f671198cbf0ca99eea8e834d4e490d5307e09601ec46471",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/model/Radiation.py": "42fae1e6ec8c62caa75d4971aaa9d1d2aea1695b78654b365dabb38694dc10e0",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/model/RoomSimulation.py": "d6c9235d2b1b0ff715158504e9eec36b38f8d8ec5585477dd60adbee4b079e5e",
+    "/Users/nicholasbachand/Documents/Research/InteriorModeling/model/Convection.py": "e7a8d0a3e4c2bccc171bc7a44f5f16cd957252f301b719d3a4d96b81b244bddd"
+  }
+}

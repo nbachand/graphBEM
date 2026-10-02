@@ -1,0 +1,110 @@
+[
+  {
+    "case": "/Users/nicholasbachand/codes/plan2EPlus/cases/graphbem_cali/CA_BURBANK-GLNDLE-PASAD-AP_722880S_CZ2022",
+    "identical_geometry_constructions_zones": true,
+    "quarter_hours": 2976,
+    "ground_C": [
+      18.0,
+      18.0
+    ],
+    "outdoor_C": [
+      15.989925007212275,
+      35.99983750007734
+    ],
+    "nominal_table_counts": {
+      "NominalPeople": 0,
+      "NominalLighting": 0,
+      "NominalElectricEquipment": 0,
+      "NominalGasEquipment": 0,
+      "NominalSteamEquipment": 0,
+      "NominalHotWaterEquipment": 0,
+      "NominalOtherEquipment": 0,
+      "NominalBaseboardHeaters": 0,
+      "NominalInfiltration": 0,
+      "NominalVentilation": 0
+    },
+    "simulation": [
+      {
+        "SimulationIndex": 1,
+        "EnergyPlusVersion": "EnergyPlus, Version 22.2.0-c249759bad, YMD=2025.06.21 15:41",
+        "TimeStamp": " YMD=2025.06.21 15:41",
+        "NumTimestepsPerHour": 4,
+        "Completed": "FALSE",
+        "CompletedSuccessfully": "FALSE"
+      }
+    ],
+    "sql_sha256": "8c8a8efeaea673e5b905ccbd30250a5202a454423520b3d17f66843090fd4af9"
+  },
+  {
+    "case": "/Users/nicholasbachand/codes/plan2EPlus/cases/graphbem_cali/CA_PALM-SPRINGS-IAP_722868S_CZ2022",
+    "identical_geometry_constructions_zones": true,
+    "quarter_hours": 2976,
+    "ground_C": [
+      18.0,
+      18.0
+    ],
+    "outdoor_C": [
+      22.889925007212273,
+      44.59983750007734
+    ],
+    "nominal_table_counts": {
+      "NominalPeople": 0,
+      "NominalLighting": 0,
+      "NominalElectricEquipment": 0,
+      "NominalGasEquipment": 0,
+      "NominalSteamEquipment": 0,
+      "NominalHotWaterEquipment": 0,
+      "NominalOtherEquipment": 0,
+      "NominalBaseboardHeaters": 0,
+      "NominalInfiltration": 0,
+      "NominalVentilation": 0
+    },
+    "simulation": [
+      {
+        "SimulationIndex": 1,
+        "EnergyPlusVersion": "EnergyPlus, Version 22.2.0-c249759bad, YMD=2025.06.21 15:41",
+        "TimeStamp": " YMD=2025.06.21 15:41",
+        "NumTimestepsPerHour": 4,
+        "Completed": "FALSE",
+        "CompletedSuccessfully": "FALSE"
+      }
+    ],
+    "sql_sha256": "398f04a3968da26c04f04ad077987f12bea82b7de862ed2999943360dd2a957c"
+  },
+  {
+    "case": "/Users/nicholasbachand/codes/plan2EPlus/cases/graphbem_cali/CA_ARCATA-AP_725945S_CZ2022",
+    "identical_geometry_constructions_zones": true,
+    "quarter_hours": 2976,
+    "ground_C": [
+      18.0,
+      18.0
+    ],
+    "outdoor_C": [
+      6.989925007212276,
+      29.999837500077337
+    ],
+    "nominal_table_counts": {
+      "NominalPeople": 0,
+      "NominalLighting": 0,
+      "NominalElectricEquipment": 0,
+      "NominalGasEquipment": 0,
+      "NominalSteamEquipment": 0,
+      "NominalHotWaterEquipment": 0,
+      "NominalOtherEquipment": 0,
+      "NominalBaseboardHeaters": 0,
+      "NominalInfiltration": 0,
+      "NominalVentilation": 0
+    },
+    "simulation": [
+      {
+        "SimulationIndex": 1,
+        "EnergyPlusVersion": "EnergyPlus, Version 22.2.0-c249759bad, YMD=2025.06.21 15:41",
+        "TimeStamp": " YMD=2025.06.21 15:41",
+        "NumTimestepsPerHour": 4,
+        "Completed": "FALSE",
+        "CompletedSuccessfully": "FALSE"
+      }
+    ],
+    "sql_sha256": "c7e6b37926238930db3aa4ce0d0574727f183a8048fe55e8730076b2e8a9feb9"
+  }
+]
